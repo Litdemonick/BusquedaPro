@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load extras %}
+{% block title %}#{{ tag }}{% endblock %}
+{% block content %}
+<h1 class="text-xl font-bold mb-4">#{{ tag }}</h1>
+<div class="space-y-4">
+  {% for t in tweets %}
+  <article class="card p-4">
+    <a href="{% url 'profile' t.user.username %}">
+  {% if t.user.userprofile.avatar %}
+    <img src="{{ t.user.userprofile.avatar.url }}" class="w-10 h-10 rounded-full object-cover" alt="@{{ t.user.username }}">
+  {% else %} 
+    <div class="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-800 flex items-center justify-center font-semibold">
+      {{ t.user.username|first|upper }}
+    </div>
+  {% endif %}
+</a>
+        <div class="flex items-center gap-2">
+      <a href="{% url 'profile' t.user.username %}" class="font-semibold hover:underline">@{{ t.user.username }}</a>
+      <span class="text-xs text-gray-500 dark:text-gray-400">{{ t.created_at|date:"d/m/Y H:i" }}</span>
+    </div>
+    <p class="mt-1 whitespace-pre-wrap">{{ t.content|linkify|safe }}</p>
+  </article>
+  {% empty %}
+  <p class="text-gray-500">No hay publicaciones con esta etiqueta.</p>
+  {% endfor %}
+</div>
+{% endblock %}

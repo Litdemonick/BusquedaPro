@@ -1,0 +1,20 @@
+
+{% extends 'base.html' %}
+{% block title %}Notificaciones{% endblock %}
+{% block content %}
+<div class="max-w-2xl mx-auto space-y-3">
+  {% for n in notifs %}
+    <div class="card p-3">
+      {% if n.actor.userprofile.avatar %}<img src="{{ n.actor.userprofile.avatar.url }}" class="w-8 h-8 rounded-full object-cover">{% else %}<div class="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-800 flex items-center justify-center text-sm font-semibold">{{ n.actor.username|first|upper }}</div>{% endif %}
+<a href="{% url 'profile' n.actor.username %}" class="font-semibold hover:underline">@{{ n.actor.username }}</a>
+      <span class="text-gray-700">{{ n.verb }}</span>
+      {% if n.tweet %}
+        <a class="text-blue-600 hover:underline" href="{% url 'tweet_detail' n.tweet.pk %}">Ver</a>
+      {% endif %}
+      <div class="text-xs text-gray-500 dark:text-gray-400">{{ n.created_at|date:"d/m/Y H:i" }}</div>
+    </div>
+  {% empty %}
+    <p class="text-gray-500">Sin notificaciones.</p>
+  {% endfor %}
+</div>
+{% endblock %}

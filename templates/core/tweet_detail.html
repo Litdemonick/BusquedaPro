@@ -1,0 +1,75 @@
+
+{% extends 'base.html' %}
+{% load static %}
+{% load extras %}
+{% block title %}Publicación - Twittor{% endblock %}
+{% block content %}
+<article class="card p-6 max-w-3xl mx-auto">
+  <div class="flex gap-3 items-start">
+    <a href="{% url 'profile' tweet.user.username %}">
+      {% if tweet.user.userprofile.avatar %}
+        <img src="{{ tweet.user.userprofile.avatar.url }}" class="w-10 h-10 rounded-full object-cover" alt="@{{ tweet.user.username }}">
+      {% else %}
+        <div class="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-800 flex items-center justify-center font-semibold">{{ tweet.user.username|first|upper }}</div>
+      {% endif %}
+    </a>
+    <div class="flex-1">
+      <div class="flex items-center gap-2">
+        <a href="{% url 'profile' tweet.user.username %}" class="font-semibold hover:underline">@{{ tweet.user.username }}</a>
+        <span class="text-xs text-gray-500 dark:text-gray-400">{{ tweet.created_at|date:"d/m/Y H:i" }}</span>
+      </div>
+      <p class="mt-2 whitespace-pre-wrap">{{ tweet.content|linkify|safe }}</p>
+      {% if tweet.image %}
+        <img src="{{ tweet.image.url }}" class="mt-3 rounded-xl border dark:border-gray-700 w-full h-auto max-h-[70vh] object-cover" alt="imagen">
+      {% endif %}
+      {% if tweet.parent %}
+        <a href="{{ tweet.parent.get_absolute_url }}" class="block border rounded-xl p-3 mt-3 text-sm bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100">
+          <div class="flex items-start gap-2">
+            <span class="text-gray-500 dark:text-gray-400">Publicación original de</span>
+            <span class="font-medium">@{{ tweet.parent.user.username }}</span>
+          </div>
+          <div class="mt-1 whitespace-pre-wrap">{{ tweet.parent.content|linkify|safe }}</div>
+        </a>
+      {% endif %}
+      <div class="mt-3 flex items-center gap-4">
+        {% include "components/like_button.html" with t=tweet %}
+      </div>
+    </div>
+  </div>
+</article>
+
+<section class="max-w-3xl mx-auto mt-6 space-y-4">
+  <div class="card p-4 text-gray-900 dark:text-gray-100">
+    <form method="post">
+      {% csrf_token %}
+      {{ cform.non_field_errors }}
+      {{ cform.content }}
+      <div class="mt-2 text-right">
+        <button class="px-4 py-2 btn-primary rounded-xl">Responder</button>
+      </div>
+    </form>
+  </div>
+  {% for c in tweet.comments.all %}
+    <div class="card p-4">
+      <div class="flex items-start gap-3">
+        <a href="{% url 'profile' c.user.username %}">
+          {% if c.user.userprofile.avatar %}
+            <img src="{{ c.user.userprofile.avatar.url }}" class="w-8 h-8 rounded-full object-cover" alt="@{{ c.user.username }}">
+          {% else %}
+            <div class="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-800 flex items-center justify-center text-sm font-semibold">{{ c.user.username|first|upper }}</div>
+          {% endif %}
+        </a>
+        <div class="flex-1">
+          <div class="flex items-center gap-2">
+            <a href="{% url 'profile' c.user.username %}" class="font-semibold hover:underline">@{{ c.user.username }}</a>
+            <span class="text-xs text-gray-500 dark:text-gray-400">{{ c.created_at|date:"d/m/Y H:i" }}</span>
+          </div>
+          <p class="mt-1 whitespace-pre-wrap">{{ c.content|linkify|safe }}</p>
+        </div>
+      </div>
+    </div>
+  {% empty %}
+    <p class="text-gray-500 dark:text-gray-300 text-sm">Aún no hay respuestas.</p>
+  {% endfor %}
+</section>
+{% endblock %}

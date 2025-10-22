@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load extras %}
+{% block title %}Citar publicación{% endblock %}
+{% block content %}
+<div class="max-w-2xl mx-auto space-y-4">
+  <article class="bg-white rounded-2xl shadow p-4">
+    <div class="text-sm text-gray-500 dark:text-gray-300 mb-1">Publicación original de @{{ original.user.username }}</div>
+    <p class="whitespace-pre-wrap">{{ original.content|linkify|safe }}</p>
+  </article>
+  <div class="bg-white rounded-2xl shadow p-4">
+    <form method="post" enctype="multipart/form-data" class="space-y-3">
+      {% csrf_token %}
+      {{ form.non_field_errors }}
+      {% if form.errors %}<div class="text-red-600 text-sm">{{ form.errors }}</div>{% endif %}
+      {{ form.content }}
+      {{ form.image }}
+      <div class="text-right">
+        <button class="px-4 py-2 bg-blue-600 text-white rounded-xl">Publicar cita</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load extras %}
+{% block title %}Perfil - Twittor{% endblock %}
+{% block content %}
+<div class="max-w-3xl mx-auto space-y-6">
+  <section class="card p-4">
+    <div class="flex items-center gap-4">
+      {% if profile.avatar %}
+        <img src="{{ profile.avatar.url }}" class="w-16 h-16 rounded-full object-cover" />
+      {% else %}
+        <div class="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center text-2xl font-bold">{{ profile_user.username|first|upper }}</div>
+      {% endif %}
+      <div class="flex-1">
+        <h1 class="text-xl font-bold">@{{ profile_user.username }}</h1>
+        <p class="text-gray-600 dark:text-gray-300">{{ profile.bio|default:"Sin biografía" }}</p>
+      </div>
+      {% if not is_me %}
+      <form method="post">
+        {% csrf_token %}
+        {% if is_following %}
+          <button name="action" value="unfollow" class="px-4 py-2 bg-gray-200 rounded-xl">Dejar de seguir</button>
+        {% else %}
+          <button name="action" value="follow" class="px-4 py-2 bg-blue-600 text-white rounded-xl">Seguir</button>
+        {% endif %}
+      </form>
+      {% endif %}
+    </div>
+  </section>
+
+  {% if is_me %}
+  <section class="card p-4">
+    <h2 class="font-semibold mb-2">Editar perfil</h2>
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="edit">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm text-gray-600 mb-1">Biografía</label>
+          {{ form.bio }}
+        </div>
+        <div>
+          <label class="block text-sm text-gray-600 mb-1">Avatar</label>
+          {{ form.avatar }}
+        </div>
+      </div>
+      <div class="mt-3">
+        <button class="px-4 py-2 bg-gray-900 text-white rounded-xl">Guardar</button>
+      </div>
+    </form>
+  </section>
+  {% endif %}
+
+  <section class="space-y-4">
+    {% for t in tweets %}
+      <article class="card p-4">
+        <div class="flex items-center gap-2">
+          <span class="font-semibold">@{{ t.user.username }}</span>
+          <span class="text-xs text-gray-500 dark:text-gray-400">{{ t.created_at|date:"d/m/Y H:i" }}</span>
+        </div>
+        <p class="mt-1 whitespace-pre-wrap">{{ t.content|linkify|safe }}</p>
+        {% if t.image %}
+          <img src="{{ t.image.url }}" class="mt-2 rounded-xl border dark:border-gray-700 w-full h-auto max-h-[70vh] object-cover" alt="imagen">
+        {% endif %}
+      </article>
+    {% empty %}
+      <p class="text-gray-500">Este usuario aún no tiene publicaciones.</p>
+    {% endfor %}
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,11 @@
+
+<div
+  hx-post="{% url 'like_toggle' t.pk %}"
+  hx-target="this"
+  hx-swap="outerHTML"
+  class="inline">
+  <form action="{% url 'like_toggle' t.pk %}" method="post" class="inline">
+    {% csrf_token %}
+    <button class="text-sm px-3 py-1 rounded-lg border">♥ {{ t.like_count }}</button>
+  </form>
+</div>

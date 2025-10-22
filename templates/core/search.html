@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load extras %}
+{% block title %}Buscar{% endblock %}
+{% block content %}
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+  <section class="md:col-span-2 space-y-4">
+    <h1 class="text-xl font-bold">Resultados para "{{ q }}"</h1>
+    {% for t in tweets %}
+      <article class="card p-4">
+        <a href="{% url 'profile' t.user.username %}">
+  {% if t.user.userprofile.avatar %}
+    <img src="{{ t.user.userprofile.avatar.url }}" class="w-10 h-10 rounded-full object-cover" alt="@{{ t.user.username }}">
+  {% else %} 
+    <div class="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-800 flex items-center justify-center font-semibold">
+      {{ t.user.username|first|upper }}
+    </div>
+  {% endif %}
+</a>
+        <div class="flex items-center gap-2">
+          <a href="{% url 'profile' t.user.username %}" class="font-semibold hover:underline">@{{ t.user.username }}</a>
+          <span class="text-xs text-gray-500 dark:text-gray-400">{{ t.created_at|date:"d/m/Y H:i" }}</span>
+        </div>
+        <p class="mt-1 whitespace-pre-wrap">{{ t.content|linkify|safe }}</p>
+      </article>
+    {% empty %}
+      <p class="text-gray-500">No se encontraron publicaciones.</p>
+    {% endfor %}
+  </section>
+  <aside class="space-y-2">
+    <h2 class="font-semibold">Usuarios</h2>
+    <div class="card divide-y divide-gray-100 dark:divide-gray-800">
+      {% for u in users %}
+        <a href="{% url 'profile' u.username %}" class="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-900 dark:text-gray-100 transition-colors">
+  {% if u.userprofile.avatar %}<img src="{{ u.userprofile.avatar.url }}" class="w-6 h-6 rounded-full object-cover">{% else %}  <div class="w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-800 flex items-center justify-center text-xs font-semibold">{{ u.username|first|upper }}</div>{% endif %}
+  <span>@{{ u.username }}</span>
+</a>
+      {% empty %}
+        <div class="px-3 py-2 text-gray-500 dark:text-gray-300 text-sm">Sin resultados</div>
+      {% endfor %}
+    </div>
+  </aside>
+</div>
+{% endblock %}
