@@ -1,0 +1,77 @@
+body {
+  font-family: system-ui, sans-serif;
+  background: #f9fafb;
+  color: #111;
+}
+
+.auth-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
+.grid-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  max-width: 900px;
+  width: 100%;
+}
+
+.form-card {
+  background: #fff;
+  border-radius: 1rem;
+  padding: 2rem;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+}
+
+.hero {
+  position: relative;
+  border-radius: 1rem;
+  overflow: hidden;
+  padding: 2rem;
+  color: white;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6, #0ea5e9);
+  display: flex;
+  flex-direction: column;
+  justify-content: end;
+}
+
+.hero h2 {
+  font-size: 1.8rem;
+  margin-bottom: 0.5rem;
+}
+
+.hero p {
+  font-size: 1rem;
+  opacity: 0.9;
+}
+
+input {
+  width: 100%;
+  padding: 0.6rem;
+  margin-bottom: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 0.5rem;
+}
+
+button {
+  width: 100%;
+  background: #4f46e5;
+  color: white;
+  border: none;
+  padding: 0.8rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+button:hover {
+  background: #4338ca;
+}
+
+.footer-text {
+  text-align: center;
+  margin-top: 1rem;
+}

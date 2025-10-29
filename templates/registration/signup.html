@@ -1,49 +1,54 @@
-{% extends 'base.html' %}
+{% extends 'base_auth.html' %}
 {% load static %}
-{% load extras %}
+
 {% block title %}Crear cuenta - Twittor{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'signup.css' %}">
+{% endblock %}
+
 {% block content %}
-<div class="grid md:grid-cols-2 gap-8 items-center min-h-[70vh]">
-  <div class="order-2 md:order-1">
-    <div class="card p-8">
-      <h1 class="text-2xl font-extrabold">Crea tu cuenta</h1>
-      <p class="text-gray-600 dark:text-gray-300 mb-6">Únete a la conversación. Solo toma un minuto.</p>
-      <form method="post" class="space-y-4">
+<div class="auth-container">
+  <div class="grid-container">
+    <!-- Columna izquierda -->
+    <div class="form-card">
+      <h1>Crea tu cuenta</h1>
+      <p>Únete a la conversación. Solo toma un minuto.</p>
+
+      <form method="post">
         {% csrf_token %}
         {{ form.non_field_errors }}
-        {% if form.errors %}<div class="p-3 rounded-xl bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-200 text-sm">{{ form.errors }}</div>{% endif %}
-        <div>
-          <label class="block text-sm mb-1">Usuario</label>
-          {{ form.username }}
-        </div>
-        <div>
-          <label class="block text-sm mb-1">Email</label>
-          {{ form.email }}
-        </div>
-        <div>
-          <label class="block text-sm mb-1">Contraseña</label>
-          {{ form.password1 }}
-          <p class="text-xs text-gray-500 mt-1">Usa 8+ caracteres, mezcla mayúsculas, minúsculas y números.</p>
-        </div>
-        <div>
-          <label class="block text-sm mb-1">Confirmar contraseña</label>
-          {{ form.password2 }}
-        </div>
-        <button class="w-full btn-primary">Crear cuenta</button>
+
+        <label for="id_username">Usuario</label>
+        <input type="text" name="{{ form.username.name }}" id="id_username" required 
+               placeholder="Elige un nombre de usuario" 
+               value="{{ form.username.value|default:'' }}">
+
+        <label for="id_email">Email</label>
+        <input type="email" name="{{ form.email.name }}" id="id_email" required 
+               placeholder="tu@email.com" 
+               value="{{ form.email.value|default:'' }}">
+
+        <label for="id_password1">Contraseña</label>
+        <input type="password" name="{{ form.password1.name }}" id="id_password1" required 
+               placeholder="Mínimo 8 caracteres">
+
+        <label for="id_password2">Confirmar contraseña</label>
+        <input type="password" name="{{ form.password2.name }}" id="id_password2" required 
+               placeholder="Repite tu contraseña">
+
+        <button type="submit">Crear cuenta</button>
       </form>
-      <p class="mt-4 text-sm text-gray-600 dark:text-gray-300">¿Ya tienes cuenta? <a href="{% url 'login' %}" class="link">Entrar</a></p>
+
+      <p class="footer-text">
+        ¿Ya tienes cuenta? <a href="{% url 'login' %}">Entrar</a>
+      </p>
     </div>
-  </div>
-  <div class="order-1 md:order-2">
-    <div class="relative overflow-hidden rounded-3xl">
-      <div class="absolute inset-0 bg-gradient-to-tr from-brand-600 via-indigo-500 to-sky-500 opacity-90"></div>
-      <svg class="absolute -top-10 -left-10 w-72 h-72 opacity-30" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-        <path fill="#ffffff" d="M47.5,-63.1C58.8,-54.5,63.3,-37.8,66.9,-22.1C70.6,-6.3,73.4,8.4,68.3,19.7C63.3,31,50.4,39,38.4,49.3C26.4,59.7,15.2,72.3,2,71.1C-11.2,70,-22.5,55.1,-35.6,44.6C-48.8,34.2,-63.8,28.1,-69.8,16.3C-75.8,4.6,-72.8,-13.1,-63.8,-24.7C-54.7,-36.2,-39.7,-41.6,-26.2,-50.8C-12.7,-60,0.3,-73,12.2,-74.6C24.1,-76.3,48.2,-66.4,47.5,-63.1Z" transform="translate(100 100)" />
-      </svg>
-      <div class="relative p-10 text-white min-h-[360px] flex flex-col justify-end">
-        <h2 class="text-3xl font-extrabold">Conecta con tu comunidad</h2>
-        <p class="mt-2 text-white/90">Sigue temas, descubre tendencias y participa con retuits, comentarios y likes.</p>
-      </div>
+
+    <!-- Columna derecha -->
+    <div class="hero">
+      <div class="gradient-bg"></div>
+      <h2>Conecta con tu comunidad</h2>
+      <p>Sigue temas, descubre tendencias y participa con retuits, comentarios y likes.</p>
     </div>
   </div>
 </div>
