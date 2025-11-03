@@ -1,0 +1,116 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mx-auto px-4 max-w-4xl">
+    <h1 class="text-2xl font-bold text-gray-800 mb-6">Búsqueda Avanzada</h1>
+
+    <!-- Formulario de búsqueda -->
+    <div class="bg-white p-6 rounded-lg shadow mb-6">
+        <form method="get" class="space-y-4">
+            <!-- Búsqueda por texto -->
+            <div>
+                <label for="q" class="block text-sm font-medium text-gray-700 mb-2">Buscar en publicaciones:</label>
+                <input type="text" name="q" id="q" value="{{ q }}" 
+                       placeholder="Escribe tu búsqueda..." 
+                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+
+            <!-- Filtro por tema -->
+            <div>
+                <label for="tema" class="block text-sm font-medium text-gray-700 mb-2">Filtrar por tema:</label>
+                <select name="tema" id="tema" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">Todos los temas</option>
+                    {% for tema in temas %}
+                    <option value="{{ tema.id }}" {% if tema_seleccionado == tema.id|stringformat:"s" %}selected{% endif %}>
+                        {{ tema.nombre }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <button type="submit" class="bg-blue-500 text-white px-6 py-2 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                🔍 Buscar
+            </button>
+        </form>
+    </div>
+
+    <!-- Resultados -->
+    {% if q or tema_seleccionado %}
+    <div class="bg-white rounded-lg shadow">
+        <!-- Header de resultados -->
+        <div class="p-4 border-b">
+            <h2 class="text-lg font-semibold text-gray-800">
+                Resultados de la búsqueda ({{ tweets.count }})
+            </h2>
+            {% if q %}
+            <p class="text-gray-600 text-sm">Búsqueda: "{{ q }}"</p>
+            {% endif %}
+            {% if tema_seleccionado %}
+            <p class="text-gray-600 text-sm">
+                Tema: 
+                {% for tema in temas %}
+                    {% if tema.id == tema_seleccionado|add:0 %}
+                    {{ tema.nombre }}
+                    {% endif %}
+                {% endfor %}
+            </p>
+            {% endif %}
+        </div>
+
+        <!-- Lista de tweets -->
+        <div class="divide-y">
+            {% for tweet in tweets %}
+            <div class="p-4 hover:bg-gray-50">
+                <!-- Header del tweet -->
+                <div class="flex items-center justify-between mb-2">
+                    <div class="flex items-center space-x-3">
+                        {% if tweet.user.userprofile.avatar %}
+                        <img src="{{ tweet.user.userprofile.avatar.url }}" alt="{{ tweet.user.username }}" class="w-8 h-8 rounded-full">
+                        {% else %}
+                        <div class="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
+                            <span class="text-gray-600 text-xs">{{ tweet.user.username|first|upper }}</span>
+                        </div>
+                        {% endif %}
+                        <div>
+                            <a href="{% url 'profile' tweet.user.username %}" class="font-semibold text-gray-800 hover:text-blue-600">
+                                {{ tweet.user.username }}
+                            </a>
+                            <p class="text-gray-500 text-xs">{{ tweet.created_at|timesince }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contenido del tweet -->
+                <p class="text-gray-800 mb-2">{{ tweet.content }}</p>
+
+                <!-- Temas del tweet -->
+                {% if tweet.temas.exists %}
+                <div class="mb-2">
+                    {% for tema in tweet.temas.all %}
+                    <a href="{% url 'tema_feed' tema.slug %}" class="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded mr-1 hover:bg-blue-200">
+                        {{ tema.nombre }}
+                    </a>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <!-- Acciones del tweet -->
+                <div class="flex items-center space-x-4 text-gray-500 text-xs">
+                    <a href="{% url 'tweet_detail' tweet.pk %}" class="hover:text-blue-600">
+                        💬 {{ tweet.comments.count }}
+                    </a>
+                    <span class="{% if user in tweet.likes.all %}text-red-600{% endif %}">
+                        ❤️ {{ tweet.like_count }}
+                    </span>
+                </div>
+            </div>
+            {% empty %}
+            <div class="p-8 text-center">
+                <p class="text-gray-500">No se encontraron publicaciones que coincidan con tu búsqueda.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

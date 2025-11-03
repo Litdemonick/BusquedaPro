@@ -1,16 +1,24 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
-from .models import Tweet, Comment, UserProfile
+from .models import Tweet, Comment, UserProfile, Tema
 
 BASE_INPUT = {'class': 'input'}
 BASE_AREA  = {'class': 'input min-h-[100px]'}  # textarea style
 BASE_FILE  = {'class': 'file-input'}
 
 class TweetForm(forms.ModelForm):
+    # NUEVO CAMPO
+    temas = forms.ModelMultipleChoiceField(
+        queryset=Tema.objects.all(),
+        widget=forms.CheckboxSelectMultiple,
+        required=False,
+        label="Temas relacionados"
+    )
+    
     class Meta:
         model = Tweet
-        fields = ['content', 'image']
+        fields = ['content', 'image', 'temas']  # Agregado 'temas'
         widgets = {
             'content': forms.Textarea(attrs={'rows': 3, 'placeholder': '¿Qué está pasando? (280 máx.)', **BASE_AREA}),
             'image': forms.ClearableFileInput(attrs={**BASE_FILE})
