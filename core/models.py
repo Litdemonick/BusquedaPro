@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.urls import reverse
+from django.utils.text import slugify
 
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
@@ -22,6 +23,21 @@ class Follow(models.Model):
     def __str__(self):
         return f'{self.follower.username} → {self.following.username}'
 
+class Tema(models.Model):
+    nombre = models.CharField(max_length=50, unique=True)
+    slug = models.SlugField(max_length=50, unique=True)
+    
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.nombre)
+        super().save(*args, **kwargs)
+    
+    def __str__(self):
+        return self.nombre
+    
+    class Meta:
+        verbose_name_plural = "Temas"
+
 class Tweet(models.Model):
     parent = models.ForeignKey('self', null=True, blank=True, on_delete=models.SET_NULL, related_name='children')
     is_retweet = models.BooleanField(default=False)
@@ -29,6 +45,8 @@ class Tweet(models.Model):
     content = models.CharField(max_length=280)
     image = models.ImageField(upload_to='tweets/', blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    # NUEVO CAMPO
+    temas = models.ManyToManyField(Tema, blank=True, related_name='tweets')
 
     class Meta:
         ordering = ['-created_at']
