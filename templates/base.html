@@ -35,6 +35,44 @@
       .card { @apply bg-white/80 dark:bg-gray-900/70 backdrop-blur rounded-2xl shadow-soft border border-white/50 dark:border-white/10; }
       .chip { @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300; }
       .link { @apply text-brand-600 hover:text-brand-700 hover:underline dark:text-brand-500 dark:hover:text-brand-400; }
+      
+      /* ⬇️⬇️⬇️ AÑADE ESTOS ESTILOS PARA AUTOCOMPLETE ⬇️⬇️⬇️ */
+      .autocomplete-results {
+          display: none;
+          position: absolute;
+          top: 100%;
+          left: 0;
+          right: 0;
+          background: white;
+          border: 1px solid #ddd;
+          border-top: none;
+          max-height: 200px;
+          overflow-y: auto;
+          z-index: 1000;
+          border-radius: 0 0 8px 8px;
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+
+      .autocomplete-result {
+          padding: 10px 12px;
+          cursor: pointer;
+          border-bottom: 1px solid #f0f0f0;
+          transition: background-color 0.2s;
+          font-size: 14px;
+      }
+
+      .autocomplete-result:hover,
+      .autocomplete-result.selected {
+          background-color: #f8f9fa;
+      }
+
+      .autocomplete-result:last-child {
+          border-bottom: none;
+      }
+
+      .search-container {
+          position: relative;
+      }
     }
     html, body { height: 100%; }
   </style>
@@ -53,11 +91,22 @@
         <img src="{% static 'logo.svg' %}" class="w-6 h-6" alt="logo">
         Twittor
       </a>
-      <form action="{% url 'search' %}" method="get" class="hidden md:flex items-center gap-2 flex-1 max-w-md">
-        <input type="text" name="q" placeholder="Buscar publicaciones o usuarios..." class="input">
+      <form action="{% url 'search' %}" method="get" class="hidden md:flex items-center gap-2 flex-1 max-w-md" id="navbar-search-form">
+          <div class="search-container" style="position: relative; width: 100%;">
+              <input 
+                  type="text" 
+                  name="q" 
+                  placeholder="Buscar publicaciones o usuarios..." 
+                  class="input"
+                  id="navbar-search-input"
+                  autocomplete="off"
+              >
+              <div id="navbar-autocomplete-results" class="autocomplete-results"></div>
+          </div>
       </form>
       <div class="flex items-center gap-2 ml-auto">
         <a href="{% url 'explore' %}" class="chip">Explorar</a>
+        <a href="{% url 'busqueda_avanzada' %}" class="chip">Busqueda Avanzada</a>
         <a href="{% url 'notifications' %}" class="chip">Notificaciones</a>
         {% if user.is_authenticated %}
           <a href="{% url 'profile' user.username %}" class="chip">@{{ user.username }}</a>
@@ -99,5 +148,147 @@
   </footer>
 
   <script src="{% static 'app.js' %}"></script>
+  
+  <script>
+  // Autocomplete para la barra de navegación
+  class NavbarAutocomplete {
+      constructor(inputId, resultsId) {
+          this.input = document.getElementById(inputId);
+          this.resultsContainer = document.getElementById(resultsId);
+          this.selectedIndex = -1;
+          this.results = [];
+          
+          if (this.input && this.resultsContainer) {
+              this.init();
+          }
+      }
+      
+      init() {
+          this.input.addEventListener('input', (e) => {
+              this.handleInput(e.target.value);
+          });
+          
+          this.input.addEventListener('keydown', (e) => {
+              this.handleKeyDown(e);
+          });
+          
+          document.addEventListener('click', (e) => {
+              if (!this.resultsContainer.contains(e.target) && e.target !== this.input) {
+                  this.hideResults();
+              }
+          });
+      }
+      
+      async handleInput(query) {
+          if (query.length < 2) {
+              this.hideResults();
+              return;
+          }
+          
+          try {
+              const response = await fetch(`/autocomplete/?q=${encodeURIComponent(query)}`);
+              
+              if (!response.ok) {
+                  throw new Error(`Error HTTP: ${response.status}`);
+              }
+              
+              const data = await response.json();
+              this.results = data.results || [];
+              this.showResults();
+          } catch (error) {
+              console.error('Error en autocomplete navbar:', error);
+              this.hideResults();
+          }
+      }
+      
+      showResults() {
+          if (this.results.length === 0) {
+              this.hideResults();
+              return;
+          }
+          
+          this.resultsContainer.innerHTML = '';
+          this.results.forEach((result, index) => {
+              const div = document.createElement('div');
+              div.className = 'autocomplete-result';
+              div.textContent = result;
+              div.dataset.value = result;
+              
+              div.addEventListener('click', () => {
+                  this.selectResult(result);
+              });
+              
+              this.resultsContainer.appendChild(div);
+          });
+          
+          this.resultsContainer.style.display = 'block';
+          this.selectedIndex = -1;
+      }
+      
+      hideResults() {
+          this.resultsContainer.style.display = 'none';
+          this.selectedIndex = -1;
+      }
+      
+      handleKeyDown(e) {
+          switch(e.key) {
+              case 'ArrowDown':
+                  e.preventDefault();
+                  this.navigateResults(1);
+                  break;
+              case 'ArrowUp':
+                  e.preventDefault();
+                  this.navigateResults(-1);
+                  break;
+              case 'Enter':
+                  if (this.selectedIndex >= 0) {
+                      e.preventDefault();
+                      this.selectResult(this.results[this.selectedIndex]);
+                  }
+                  break;
+              case 'Escape':
+                  this.hideResults();
+                  break;
+          }
+      }
+      
+      navigateResults(direction) {
+          if (this.results.length === 0) return;
+          
+          if (this.selectedIndex >= 0) {
+              this.resultsContainer.children[this.selectedIndex].classList.remove('selected');
+          }
+          
+          this.selectedIndex += direction;
+          
+          if (this.selectedIndex < 0) {
+              this.selectedIndex = this.results.length - 1;
+          } else if (this.selectedIndex >= this.results.length) {
+              this.selectedIndex = 0;
+          }
+          
+          this.resultsContainer.children[this.selectedIndex].classList.add('selected');
+          
+          this.resultsContainer.children[this.selectedIndex].scrollIntoView({
+              block: 'nearest'
+          });
+      }
+      
+      selectResult(value) {
+          this.input.value = value;
+          this.hideResults();
+          // Enviar el formulario automáticamente
+          this.input.form.submit();
+      }
+  }
+
+  // Inicializar cuando el DOM esté listo
+  document.addEventListener('DOMContentLoaded', function() {
+      // Autocomplete para navbar
+      new NavbarAutocomplete('navbar-search-input', 'navbar-autocomplete-results');
+  });
+  </script>
+  
+  {% block extra_js %}{% endblock %}
 </body>
 </html>

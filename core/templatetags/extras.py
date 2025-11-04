@@ -1,4 +1,3 @@
-
 from django import template
 import re
 from django.utils.safestring import mark_safe
@@ -24,3 +23,16 @@ def linkify(text: str):
     html = HASHTAG_RE.sub(link_tag, text)
     html = MENTION_RE.sub(link_mention, html)
     return mark_safe(html)
+
+# NUEVO TEMPLATE TAG - Agrega esto al final
+@register.filter
+def get_tema_by_id(temas, tema_id):
+    """Obtiene el nombre de un tema por su ID desde un queryset de temas"""
+    try:
+        tema_id = int(tema_id)
+        for tema in temas:
+            if tema.id == tema_id:
+                return tema.nombre
+    except (ValueError, TypeError):
+        pass
+    return "Desconocido"

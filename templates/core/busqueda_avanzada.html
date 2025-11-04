@@ -1,0 +1,397 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load extras %}
+
+{% block title %}Búsqueda Avanzada - Twittor{% endblock %}
+
+{% block extra_css %}
+<style>
+.autocomplete-results {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #ddd;
+    border-top: none;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+    border-radius: 0 0 8px 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.autocomplete-result {
+    padding: 10px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid #f0f0f0;
+    transition: background-color 0.2s;
+    color: #1f2937; /* Texto gris oscuro para mejor contraste */
+}
+
+.autocomplete-result:hover,
+.autocomplete-result.selected {
+    background-color: #f8f9fa;
+    color: #111827; /* Texto más oscuro al hacer hover */
+}
+
+.autocomplete-result:last-child {
+    border-bottom: none;
+}
+
+.search-container {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+#search-input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 16px;
+    box-sizing: border-box;
+    background-color: white;
+    color: #1f2937; /* Texto oscuro para buen contraste */
+}
+
+#search-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+#search-input::placeholder {
+    color: #6b7280; /* Placeholder gris medio */
+}
+
+/* Estilos para modo oscuro */
+@media (prefers-color-scheme: dark) {
+    .autocomplete-results {
+        background: #374151;
+        border-color: #4b5563;
+    }
+
+    .autocomplete-result {
+        color: #f9fafb;
+        border-bottom-color: #4b5563;
+    }
+
+    .autocomplete-result:hover,
+    .autocomplete-result.selected {
+        background-color: #4b5563;
+        color: #ffffff;
+    }
+
+    #search-input {
+        background-color: #374151;
+        border-color: #4b5563;
+        color: #f9fafb;
+    }
+
+    #search-input::placeholder {
+        color: #9ca3af;
+    }
+
+    #search-input:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    }
+}
+
+/* Estilos específicos para el tema claro */
+.theme-light .autocomplete-results {
+    background: white;
+    border-color: #d1d5db;
+}
+
+.theme-light .autocomplete-result {
+    color: #1f2937;
+    border-bottom-color: #e5e7eb;
+}
+
+.theme-light .autocomplete-result:hover,
+.theme-light .autocomplete-result.selected {
+    background-color: #f3f4f6;
+    color: #111827;
+}
+
+.theme-light #search-input {
+    background-color: white;
+    border-color: #d1d5db;
+    color: #1f2937;
+}
+
+.theme-light #search-input::placeholder {
+    color: #6b7280;
+}
+
+/* Estilos específicos para el tema oscuro */
+.theme-dark .autocomplete-results {
+    background: #374151;
+    border-color: #4b5563;
+}
+
+.theme-dark .autocomplete-result {
+    color: #f9fafb;
+    border-bottom-color: #4b5563;
+}
+
+.theme-dark .autocomplete-result:hover,
+.theme-dark .autocomplete-result.selected {
+    background-color: #4b5563;
+    color: #ffffff;
+}
+
+.theme-dark #search-input {
+    background-color: #374151;
+    border-color: #4b5563;
+    color: #f9fafb;
+}
+
+.theme-dark #search-input::placeholder {
+    color: #9ca3af;
+}
+
+.theme-dark #search-input:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto p-4">
+
+    <h1 class="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Búsqueda Avanzada</h1>
+    
+    <form method="get" action="{% url 'busqueda_avanzada' %}" class="mb-8">
+        <div class="search-container">
+            <input 
+                type="text" 
+                id="search-input" 
+                name="q" 
+                placeholder="Buscar temas, usuarios..." 
+                autocomplete="off"
+                value="{{ q }}"
+                class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            >
+            <div id="autocomplete-results" class="autocomplete-results"></div>
+        </div>
+
+        <div class="mb-4">
+            <label for="tema" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Filtrar por tema:</label>
+            <select name="tema" id="tema" class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                <option value="">Todos los temas</option>
+                {% for tema in temas %}
+                    <option value="{{ tema.id }}" {% if tema.id == tema_seleccionado %}selected{% endif %}>
+                        {{ tema.nombre }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-medium transition-colors">
+            Buscar
+        </button>
+    </form>
+
+    {% if q or tema_seleccionado %}
+    <div class="results">
+        <h2 class="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
+            Resultados 
+            {% if q %}para "{{ q }}"{% endif %}
+            {% if tema_seleccionado and q %}y{% endif %}
+            {% if tema_seleccionado %}con tema "{{ temas|get_tema_by_id:tema_seleccionado }}"{% endif %}
+        </h2>
+
+        {% if tweets %}
+            <div class="space-y-4">
+                {% for tweet in tweets %}
+                    <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+                        <div class="flex items-center gap-3 mb-2">
+                            <a href="{% url 'profile' tweet.user.username %}">
+                                {% if tweet.user.userprofile.avatar %}
+                                    <img src="{{ tweet.user.userprofile.avatar.url }}" class="w-10 h-10 rounded-full object-cover" alt="@{{ tweet.user.username }}">
+                                {% else %}
+                                    <div class="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center font-semibold text-gray-700 dark:text-gray-300">
+                                        {{ tweet.user.username|first|upper }}
+                                    </div>
+                                {% endif %}
+                            </a>
+                            <div>
+                                <a href="{% url 'profile' tweet.user.username %}" class="font-semibold hover:underline text-gray-900 dark:text-white">@{{ tweet.user.username }}</a>
+                                <div class="text-xs text-gray-500 dark:text-gray-400">{{ tweet.created_at|date:"d/m/Y H:i" }}</div>
+                            </div>
+                        </div>
+                        <p class="text-gray-800 dark:text-gray-200 whitespace-pre-wrap">{{ tweet.content|linkify|safe }}</p>
+                        
+                        {% if tweet.temas.all %}
+                            <div class="mt-2 flex flex-wrap gap-1">
+                                {% for tema in tweet.temas.all %}
+                                    <a href="{% url 'tema_feed' tema.slug %}" class="inline-block bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs px-2 py-1 rounded">
+                                        #{{ tema.nombre }}
+                                    </a>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="text-center py-8 text-gray-500 dark:text-gray-400">
+                <p>No se encontraron publicaciones con los criterios de búsqueda.</p>
+            </div>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+console.log('🎯 Autocomplete iniciado - Búsqueda Avanzada');
+
+class Autocomplete {
+    constructor(inputId, resultsId) {
+        this.input = document.getElementById(inputId);
+        this.resultsContainer = document.getElementById(resultsId);
+        this.selectedIndex = -1;
+        this.results = [];
+        this.init();
+    }
+    
+    init() {
+        this.input.addEventListener('input', (e) => {
+            this.handleInput(e.target.value);
+        });
+        
+        this.input.addEventListener('keydown', (e) => {
+            this.handleKeyDown(e);
+        });
+        
+        document.addEventListener('click', (e) => {
+            if (!this.resultsContainer.contains(e.target) && e.target !== this.input) {
+                this.hideResults();
+            }
+        });
+    }
+    
+    async handleInput(query) {
+        console.log('🔍 Buscando:', query);
+        
+        if (query.length < 2) {
+            this.hideResults();
+            return;
+        }
+        
+        try {
+            const response = await fetch(`/autocomplete/?q=${encodeURIComponent(query)}`);
+            
+            if (!response.ok) {
+                throw new Error(`Error HTTP: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            console.log('📦 Respuesta del servidor:', data);
+            
+            this.results = data.results || [];
+            this.showResults();
+        } catch (error) {
+            console.error('❌ Error:', error);
+            this.hideResults();
+        }
+    }
+    
+    showResults() {
+        if (this.results.length === 0) {
+            this.hideResults();
+            return;
+        }
+        
+        this.resultsContainer.innerHTML = '';
+        this.results.forEach((result, index) => {
+            const div = document.createElement('div');
+            div.className = 'autocomplete-result';
+            div.textContent = result;
+            div.dataset.value = result;
+            
+            div.addEventListener('click', () => {
+                this.selectResult(result);
+            });
+            
+            this.resultsContainer.appendChild(div);
+        });
+        
+        this.resultsContainer.style.display = 'block';
+        this.selectedIndex = -1;
+        
+        console.log('✅ Mostrando', this.results.length, 'resultados');
+    }
+    
+    hideResults() {
+        this.resultsContainer.style.display = 'none';
+        this.selectedIndex = -1;
+    }
+    
+    handleKeyDown(e) {
+        switch(e.key) {
+            case 'ArrowDown':
+                e.preventDefault();
+                this.navigateResults(1);
+                break;
+            case 'ArrowUp':
+                e.preventDefault();
+                this.navigateResults(-1);
+                break;
+            case 'Enter':
+                if (this.selectedIndex >= 0) {
+                    e.preventDefault();
+                    this.selectResult(this.results[this.selectedIndex]);
+                }
+                break;
+            case 'Escape':
+                this.hideResults();
+                break;
+        }
+    }
+    
+    navigateResults(direction) {
+        if (this.results.length === 0) return;
+        
+        if (this.selectedIndex >= 0) {
+            this.resultsContainer.children[this.selectedIndex].classList.remove('selected');
+        }
+        
+        this.selectedIndex += direction;
+        
+        if (this.selectedIndex < 0) {
+            this.selectedIndex = this.results.length - 1;
+        } else if (this.selectedIndex >= this.results.length) {
+            this.selectedIndex = 0;
+        }
+        
+        this.resultsContainer.children[this.selectedIndex].classList.add('selected');
+        
+        this.resultsContainer.children[this.selectedIndex].scrollIntoView({
+            block: 'nearest'
+        });
+    }
+    
+    selectResult(value) {
+        this.input.value = value;
+        this.hideResults();
+        console.log('🎯 Seleccionado:', value);
+        
+        // Opcional: enviar el formulario automáticamente al seleccionar
+        // this.input.form.submit();
+    }
+}
+
+// Inicializar
+document.addEventListener('DOMContentLoaded', function() {
+    new Autocomplete('search-input', 'autocomplete-results');
+});
+</script>
+{% endblock %}

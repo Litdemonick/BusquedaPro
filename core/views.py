@@ -3,8 +3,29 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404, redirect, render
 from django.http import HttpResponseForbidden
-from .models import Tweet, Like, Comment, Follow, UserProfile
+from django.db.models import Q
+import re
+from django.template.loader import render_to_string
+from django.http import JsonResponse
+
+from .models import Tweet, Like, Comment, Follow, UserProfile, Tema
 from .forms import TweetForm, CommentForm, SignUpForm, ProfileForm
+
+HASHTAG_RE = re.compile(r"(#\w+)")
+
+def _create_notification(actor, recipient, verb, tweet=None):
+    if actor == recipient:
+        return
+    from .models import Notification
+    Notification.objects.create(actor=actor, recipient=recipient, verb=verb, tweet=tweet)
+
+# views.py
+def toggle_theme(request):
+    if request.method == 'POST':
+        theme = request.POST.get('theme', 'light')
+        request.session['theme'] = theme
+        return JsonResponse({'status': 'ok'})
+    return JsonResponse({'status': 'error'})
 
 def signup_view(request):
     if request.user.is_authenticated:
@@ -30,6 +51,7 @@ def timeline(request):
             tw = form.save(commit=False)
             tw.user = request.user
             tw.save()
+            form.save_m2m()  # Importante para guardar los temas
             return redirect('timeline')
     else:
         form = TweetForm()
@@ -48,6 +70,12 @@ def like_toggle(request, pk):
     like, created = Like.objects.get_or_create(user=request.user, tweet=tweet)
     if not created:
         like.delete()
+    else:
+        _create_notification(request.user, tweet.user, 'le gustó tu publicación', tweet=tweet)
+
+    if request.headers.get('Hx-Request'):
+        html = render_to_string('components/like_button.html', {'t': tweet, 'user': request.user})
+        return JsonResponse({'html': html})
     return redirect(request.META.get('HTTP_REFERER', tweet.get_absolute_url()))
 
 @login_required
@@ -91,18 +119,7 @@ def profile(request, username):
     return render(request, 'core/profile.html', ctx)
 
 
-import re
-from django.db.models import Q
-from django.template.loader import render_to_string
-from django.http import JsonResponse
 
-HASHTAG_RE = re.compile(r"(#\w+)")
-
-def _create_notification(actor, recipient, verb, tweet=None):
-    if actor == recipient:
-        return
-    from .models import Notification
-    Notification.objects.create(actor=actor, recipient=recipient, verb=verb, tweet=tweet)
 
 @login_required
 def search(request):
@@ -151,25 +168,78 @@ def quote(request, pk):
             quote_tw.parent = tw
             quote_tw.is_retweet = False
             quote_tw.save()
+            form.save_m2m()  # Importante para guardar los temas
             _create_notification(request.user, tw.user, 'citó tu publicación', tweet=tw)
             return redirect('timeline')
     else:
         form = TweetForm()
     return render(request, 'core/quote.html', {'original': tw, 'form': form})
 
+# NUEVAS VISTAS PARA TEMAS
 @login_required
-def like_toggle(request, pk):
-    # Enhanced: if HTMX request, return partial
-    if request.method != 'POST':
-        return HttpResponseForbidden('Solo POST')
-    tweet = get_object_or_404(Tweet, pk=pk)
-    like, created = Like.objects.get_or_create(user=request.user, tweet=tweet)
-    if not created:
-        like.delete()
-    else:
-        _create_notification(request.user, tweet.user, 'le gustó tu publicación', tweet=tweet)
+def tema_feed(request, slug):
+    tema = get_object_or_404(Tema, slug=slug)
+    tweets = Tweet.objects.filter(temas=tema).select_related('user', 'user__userprofile').order_by('-created_at')
+    
+    return render(request, 'core/tema_feed.html', {
+        'tema': tema,
+        'tweets': tweets,
+        'form': TweetForm()
+    })
 
-    if request.headers.get('Hx-Request'):
-        html = render_to_string('components/like_button.html', {'t': tweet, 'user': request.user})
-        return JsonResponse({'html': html})
-    return redirect(request.META.get('HTTP_REFERER', tweet.get_absolute_url()))
+@login_required
+def busqueda_avanzada(request):
+    q = request.GET.get('q', '').strip()
+    tema_id = request.GET.get('tema', '')
+    
+    tweets = Tweet.objects.all().select_related('user', 'user__userprofile')
+    
+    # DETECTAR SI ES UN HASHTAG
+    if q.startswith('#'):
+        hashtag = q[1:].lower()  # Remover el # y hacer lowercase
+        tweets = tweets.filter(content__iregex=rf'(^|\s)#({hashtag})\b')
+    elif q:
+        # Búsqueda normal
+        tweets = tweets.filter(Q(content__icontains=q) | Q(user__username__icontains=q))
+    
+    if tema_id:
+        tweets = tweets.filter(temas__id=tema_id)
+    
+    tweets = tweets[:100]
+    
+    return render(request, 'core/busqueda_avanzada.html', {
+        'q': q,
+        'tweets': tweets,
+        'users': User.objects.none(),  # No mostrar usuarios en búsqueda avanzada
+        'temas': Tema.objects.all(),
+        'tema_seleccionado': tema_id
+    })
+
+@login_required
+def autocomplete(request):
+    q = request.GET.get('q', '').strip().lower()
+    print(f"🔍 Autocomplete buscando: '{q}'")
+    
+    resultados = []
+
+    if len(q) >= 2:
+        # OPCIÓN 1: Buscar en los Temas (model Tema)
+        temas = Tema.objects.filter(nombre__icontains=q)[:10]
+        if temas.exists():
+            resultados = [tema.nombre for tema in temas]
+            print(f"✅ Encontrados {len(resultados)} temas: {resultados}")
+        else:
+            # OPCIÓN 2: Buscar hashtags en contenido de tweets
+            todos_tweets = Tweet.objects.all()[:50]
+            hashtags_encontrados = set()
+            
+            for tweet in todos_tweets:
+                hashtags = re.findall(r'#(\w+)', tweet.content.lower())
+                for hashtag in hashtags:
+                    if q in hashtag:
+                        hashtags_encontrados.add(f"#{hashtag}")
+            
+            resultados = list(hashtags_encontrados)[:10]
+            print(f"✅ Encontrados {len(resultados)} hashtags: {resultados}")
+
+    return JsonResponse({'results': resultados})

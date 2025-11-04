@@ -1,15 +1,158 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" class="{% if request.session.theme == 'dark' %}dark{% else %}light{% endif %}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}Twittor{% endblock %}</title>
 
-  <!-- 👇 Aquí se inyectará tu CSS -->
+  <!-- Tailwind CSS para estilos -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+    }
+  </script>
+
+  <!-- Estilos base para temas -->
+  <style>
+    .theme-light {
+      --bg-primary: white;
+      --bg-secondary: #f9fafb;
+      --text-primary: #1f2937;
+      --text-secondary: #6b7280;
+      --border-color: #e5e7eb;
+    }
+
+    .theme-dark {
+      --bg-primary: #111827;
+      --bg-secondary: #1f2937;
+      --text-primary: #f9fafb;
+      --text-secondary: #d1d5db;
+      --border-color: #374151;
+    }
+
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      transition: all 0.3s ease;
+    }
+
+    .auth-container {
+      min-height: 100vh;
+      background-color: var(--bg-primary);
+    }
+
+    .theme-toggle {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+    }
+
+    /* Prevenir flash de tema incorrecto */
+    .no-flash {
+      opacity: 0;
+    }
+    
+    .loaded {
+      opacity: 1;
+      transition: opacity 0.3s ease;
+    }
+  </style>
+
   {% block extra_css %}{% endblock %}
 </head>
-<body>
+<body class="theme-{% if request.session.theme == 'dark' %}dark{% else %}light{% endif %} no-flash">
+  <!-- Botón para cambiar tema -->
+  <div class="theme-toggle">
+    <button onclick="toggleTheme()" class="p-2 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 shadow-lg hover:shadow-xl transition-all">
+      <span id="theme-icon">🌙</span>
+    </button>
+  </div>
+
   {% block content %}{% endblock %}
+
+  <script>
+    // Función para guardar el tema en localStorage
+    function saveThemeToLocalStorage(theme) {
+      localStorage.setItem('twittor-theme', theme);
+    }
+
+    // Función para cargar el tema desde localStorage
+    function loadThemeFromLocalStorage() {
+      return localStorage.getItem('twittor-theme');
+    }
+
+    // Función para aplicar el tema
+    function applyTheme(theme) {
+      // Aplicar clases al html y body
+      document.documentElement.classList.remove('light', 'dark');
+      document.documentElement.classList.add(theme);
+      
+      document.body.classList.remove('theme-light', 'theme-dark', 'no-flash');
+      document.body.classList.add(`theme-${theme}`);
+
+      // Actualizar el icono
+      const themeIcon = document.getElementById('theme-icon');
+      themeIcon.textContent = theme === 'dark' ? '☀️' : '🌙';
+
+      // Mostrar contenido después de aplicar el tema
+      setTimeout(() => {
+        document.body.classList.add('loaded');
+      }, 50);
+    }
+
+    // Función para cambiar tema
+    function toggleTheme() {
+      const currentTheme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      
+      applyTheme(newTheme);
+      saveThemeToLocalStorage(newTheme);
+      
+      // Guardar la preferencia en el servidor
+      fetch('/toggle-theme/', {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': '{{ csrf_token }}',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({theme: newTheme})
+      }).catch(err => {
+        console.log('Error guardando tema en servidor:', err);
+      });
+    }
+
+    // Función para inicializar el tema
+    function initializeTheme() {
+      // 1. Primero intentar cargar de localStorage (más rápido)
+      const localTheme = loadThemeFromLocalStorage();
+      
+      if (localTheme) {
+        applyTheme(localTheme);
+        return;
+      }
+      
+      // 2. Si no hay en localStorage, usar el tema de la sesión
+      const sessionTheme = '{{ request.session.theme }}' || 'light';
+      applyTheme(sessionTheme);
+      saveThemeToLocalStorage(sessionTheme);
+    }
+
+    // Inicializar el tema al cargar la página
+    document.addEventListener('DOMContentLoaded', function() {
+      initializeTheme();
+      
+      // Sincronizar entre pestañas
+      window.addEventListener('storage', function(e) {
+        if (e.key === 'twittor-theme') {
+          applyTheme(e.newValue);
+        }
+      });
+    });
+  </script>
+
+  {% block extra_js %}{% endblock %}
 </body>
 </html>
