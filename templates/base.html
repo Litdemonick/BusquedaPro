@@ -106,6 +106,7 @@
       </form>
       <div class="flex items-center gap-2 ml-auto">
         <a href="{% url 'explore' %}" class="chip">Explorar</a>
+        <a href="{% url 'busqueda_avanzada' %}" class="chip">Busqueda Avanzada</a>
         <a href="{% url 'notifications' %}" class="chip">Notificaciones</a>
         {% if user.is_authenticated %}
           <a href="{% url 'profile' user.username %}" class="chip">@{{ user.username }}</a>

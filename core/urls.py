@@ -10,6 +10,7 @@ urlpatterns = [
     path('t/<int:pk>/retweet/', views.retweet, name='retweet'),
     path('t/<int:pk>/quote/', views.quote, name='quote'),
     path('u/<str:username>/', views.profile, name='profile'),
+    path('toggle-theme/', views.toggle_theme, name='toggle_theme'),
     
     # URLs de búsqueda y autocomplete
     path('search/', views.search, name='search'),

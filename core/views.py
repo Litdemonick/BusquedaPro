@@ -19,6 +19,14 @@ def _create_notification(actor, recipient, verb, tweet=None):
     from .models import Notification
     Notification.objects.create(actor=actor, recipient=recipient, verb=verb, tweet=tweet)
 
+# views.py
+def toggle_theme(request):
+    if request.method == 'POST':
+        theme = request.POST.get('theme', 'light')
+        request.session['theme'] = theme
+        return JsonResponse({'status': 'ok'})
+    return JsonResponse({'status': 'error'})
+
 def signup_view(request):
     if request.user.is_authenticated:
         return redirect('timeline')
