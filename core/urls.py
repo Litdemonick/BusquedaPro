@@ -2,10 +2,6 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    path('search/', views.search, name='search'),
-    path('tag/<str:tag>/', views.tag, name='tag'),
-    path('n/', views.notifications, name='notifications'),
-
     path('', views.timeline, name='timeline'),
     path('explore/', views.explore, name='explore'),
     path('signup/', views.signup_view, name='signup'),
@@ -15,12 +11,12 @@ urlpatterns = [
     path('t/<int:pk>/quote/', views.quote, name='quote'),
     path('u/<str:username>/', views.profile, name='profile'),
     
-    # URLs existentes
+    # URLs de búsqueda y autocomplete
     path('search/', views.search, name='search'),
+    path('autocomplete/', views.autocomplete, name='autocomplete'),  # ¡Esta línea es importante!
     path('tag/<str:tag>/', views.tag, name='tag'),
     path('n/', views.notifications, name='notifications'),
     
-    # NUEVAS URLs para temas
+    # URLs para temas
     path('tema/<slug:slug>/', views.tema_feed, name='tema_feed'),
-    path('busqueda-avanzada/', views.busqueda_avanzada, name='busqueda_avanzada'),
 ]

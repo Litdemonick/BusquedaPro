@@ -2,21 +2,89 @@
 {% load static %}
 {% load extras %}
 {% block title %}Buscar{% endblock %}
+
+{% block extra_css %}
+<style>
+.autocomplete-results {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #ddd;
+    border-top: none;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+    border-radius: 0 0 8px 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.autocomplete-result {
+    padding: 10px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid #f0f0f0;
+    transition: background-color 0.2s;
+}
+
+.autocomplete-result:hover,
+.autocomplete-result.selected {
+    background-color: #f8f9fa;
+}
+
+.autocomplete-result:last-child {
+    border-bottom: none;
+}
+
+.search-container {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+#search-input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 16px;
+    box-sizing: border-box;
+}
+
+#search-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+</style>
+{% endblock %}
+
 {% block content %}
+<div class="search-container">
+    <input 
+        type="text" 
+        id="search-input" 
+        placeholder="Buscar temas, usuarios..." 
+        autocomplete="off"
+        value="{{ q }}"
+    >
+    <div id="autocomplete-results" class="autocomplete-results"></div>
+</div>
+
 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
   <section class="md:col-span-2 space-y-4">
     <h1 class="text-xl font-bold">Resultados para "{{ q }}"</h1>
     {% for t in tweets %}
       <article class="card p-4">
         <a href="{% url 'profile' t.user.username %}">
-  {% if t.user.userprofile.avatar %}
-    <img src="{{ t.user.userprofile.avatar.url }}" class="w-10 h-10 rounded-full object-cover" alt="@{{ t.user.username }}">
-  {% else %} 
-    <div class="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-800 flex items-center justify-center font-semibold">
-      {{ t.user.username|first|upper }}
-    </div>
-  {% endif %}
-</a>
+          {% if t.user.userprofile.avatar %}
+            <img src="{{ t.user.userprofile.avatar.url }}" class="w-10 h-10 rounded-full object-cover" alt="@{{ t.user.username }}">
+          {% else %} 
+            <div class="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-800 flex items-center justify-center font-semibold">
+              {{ t.user.username|first|upper }}
+            </div>
+          {% endif %}
+        </a>
         <div class="flex items-center gap-2">
           <a href="{% url 'profile' t.user.username %}" class="font-semibold hover:underline">@{{ t.user.username }}</a>
           <span class="text-xs text-gray-500 dark:text-gray-400">{{ t.created_at|date:"d/m/Y H:i" }}</span>
@@ -27,18 +95,169 @@
       <p class="text-gray-500">No se encontraron publicaciones.</p>
     {% endfor %}
   </section>
+  
   <aside class="space-y-2">
     <h2 class="font-semibold">Usuarios</h2>
     <div class="card divide-y divide-gray-100 dark:divide-gray-800">
       {% for u in users %}
         <a href="{% url 'profile' u.username %}" class="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-900 dark:text-gray-100 transition-colors">
-  {% if u.userprofile.avatar %}<img src="{{ u.userprofile.avatar.url }}" class="w-6 h-6 rounded-full object-cover">{% else %}  <div class="w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-800 flex items-center justify-center text-xs font-semibold">{{ u.username|first|upper }}</div>{% endif %}
-  <span>@{{ u.username }}</span>
-</a>
+          {% if u.userprofile.avatar %}
+            <img src="{{ u.userprofile.avatar.url }}" class="w-6 h-6 rounded-full object-cover">
+          {% else %}  
+            <div class="w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-800 flex items-center justify-center text-xs font-semibold">
+              {{ u.username|first|upper }}
+            </div>
+          {% endif %}
+          <span>@{{ u.username }}</span>
+        </a>
       {% empty %}
         <div class="px-3 py-2 text-gray-500 dark:text-gray-300 text-sm">Sin resultados</div>
       {% endfor %}
     </div>
   </aside>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+console.log('🎯 Autocomplete iniciado');
+
+class Autocomplete {
+    constructor(inputId, resultsId) {
+        this.input = document.getElementById(inputId);
+        this.resultsContainer = document.getElementById(resultsId);
+        this.selectedIndex = -1;
+        this.results = [];
+        this.init();
+    }
+    
+    init() {
+        this.input.addEventListener('input', (e) => {
+            this.handleInput(e.target.value);
+        });
+        
+        this.input.addEventListener('keydown', (e) => {
+            this.handleKeyDown(e);
+        });
+        
+        document.addEventListener('click', (e) => {
+            if (!this.resultsContainer.contains(e.target) && e.target !== this.input) {
+                this.hideResults();
+            }
+        });
+    }
+    
+    async handleInput(query) {
+        console.log('🔍 Buscando:', query);
+        
+        if (query.length < 2) {
+            this.hideResults();
+            return;
+        }
+        
+        try {
+            const response = await fetch(`/autocomplete/?q=${encodeURIComponent(query)}`);
+            
+            if (!response.ok) {
+                throw new Error(`Error HTTP: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            console.log('📦 Respuesta del servidor:', data);
+            
+            this.results = data.results || [];
+            this.showResults();
+        } catch (error) {
+            console.error('❌ Error:', error);
+            this.hideResults();
+        }
+    }
+    
+    showResults() {
+        if (this.results.length === 0) {
+            this.hideResults();
+            return;
+        }
+        
+        this.resultsContainer.innerHTML = '';
+        this.results.forEach((result, index) => {
+            const div = document.createElement('div');
+            div.className = 'autocomplete-result';
+            div.textContent = result;
+            div.dataset.value = result;
+            
+            div.addEventListener('click', () => {
+                this.selectResult(result);
+            });
+            
+            this.resultsContainer.appendChild(div);
+        });
+        
+        this.resultsContainer.style.display = 'block';
+        this.selectedIndex = -1;
+        
+        console.log('✅ Mostrando', this.results.length, 'resultados');
+    }
+    
+    hideResults() {
+        this.resultsContainer.style.display = 'none';
+        this.selectedIndex = -1;
+    }
+    
+    handleKeyDown(e) {
+        switch(e.key) {
+            case 'ArrowDown':
+                e.preventDefault();
+                this.navigateResults(1);
+                break;
+            case 'ArrowUp':
+                e.preventDefault();
+                this.navigateResults(-1);
+                break;
+            case 'Enter':
+                if (this.selectedIndex >= 0) {
+                    e.preventDefault();
+                    this.selectResult(this.results[this.selectedIndex]);
+                }
+                break;
+            case 'Escape':
+                this.hideResults();
+                break;
+        }
+    }
+    
+    navigateResults(direction) {
+        if (this.results.length === 0) return;
+        
+        if (this.selectedIndex >= 0) {
+            this.resultsContainer.children[this.selectedIndex].classList.remove('selected');
+        }
+        
+        this.selectedIndex += direction;
+        
+        if (this.selectedIndex < 0) {
+            this.selectedIndex = this.results.length - 1;
+        } else if (this.selectedIndex >= this.results.length) {
+            this.selectedIndex = 0;
+        }
+        
+        this.resultsContainer.children[this.selectedIndex].classList.add('selected');
+        
+        this.resultsContainer.children[this.selectedIndex].scrollIntoView({
+            block: 'nearest'
+        });
+    }
+    
+    selectResult(value) {
+        this.input.value = value;
+        this.hideResults();
+        console.log('🎯 Seleccionado:', value);
+    }
+}
+
+// Inicializar
+document.addEventListener('DOMContentLoaded', function() {
+    new Autocomplete('search-input', 'autocomplete-results');
+});
+</script>
 {% endblock %}

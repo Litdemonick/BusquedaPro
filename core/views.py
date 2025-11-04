@@ -185,11 +185,14 @@ def busqueda_avanzada(request):
     tema_id = request.GET.get('tema', '')
     
     tweets = Tweet.objects.all().select_related('user', 'user__userprofile')
-    users = User.objects.none()
     
-    if q:
+    # DETECTAR SI ES UN HASHTAG
+    if q.startswith('#'):
+        hashtag = q[1:].lower()  # Remover el # y hacer lowercase
+        tweets = tweets.filter(content__iregex=rf'(^|\s)#({hashtag})\b')
+    elif q:
+        # Búsqueda normal
         tweets = tweets.filter(Q(content__icontains=q) | Q(user__username__icontains=q))
-        users = User.objects.select_related('userprofile').filter(username__icontains=q)[:50]
     
     if tema_id:
         tweets = tweets.filter(temas__id=tema_id)
@@ -199,7 +202,36 @@ def busqueda_avanzada(request):
     return render(request, 'core/busqueda_avanzada.html', {
         'q': q,
         'tweets': tweets,
-        'users': users,
+        'users': User.objects.none(),  # No mostrar usuarios en búsqueda avanzada
         'temas': Tema.objects.all(),
         'tema_seleccionado': tema_id
     })
+
+@login_required
+def autocomplete(request):
+    q = request.GET.get('q', '').strip().lower()
+    print(f"🔍 Autocomplete buscando: '{q}'")
+    
+    resultados = []
+
+    if len(q) >= 2:
+        # OPCIÓN 1: Buscar en los Temas (model Tema)
+        temas = Tema.objects.filter(nombre__icontains=q)[:10]
+        if temas.exists():
+            resultados = [tema.nombre for tema in temas]
+            print(f"✅ Encontrados {len(resultados)} temas: {resultados}")
+        else:
+            # OPCIÓN 2: Buscar hashtags en contenido de tweets
+            todos_tweets = Tweet.objects.all()[:50]
+            hashtags_encontrados = set()
+            
+            for tweet in todos_tweets:
+                hashtags = re.findall(r'#(\w+)', tweet.content.lower())
+                for hashtag in hashtags:
+                    if q in hashtag:
+                        hashtags_encontrados.add(f"#{hashtag}")
+            
+            resultados = list(hashtags_encontrados)[:10]
+            print(f"✅ Encontrados {len(resultados)} hashtags: {resultados}")
+
+    return JsonResponse({'results': resultados})
