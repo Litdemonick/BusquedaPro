@@ -95,3 +95,8 @@ class Notification(models.Model):
 
     def __str__(self):
         return f'{self.actor} -> {self.recipient}: {self.verb}'
+class Hashtag(models.Model):
+    name = models.CharField(max_length=64, unique=True, db_index=True)  # guarda SIN '#'
+
+    def __str__(self):
+        return f"#{self.name}"

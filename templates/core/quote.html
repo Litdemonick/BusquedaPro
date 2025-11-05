@@ -4,21 +4,56 @@
 {% block title %}Citar publicación{% endblock %}
 {% block content %}
 <div class="max-w-2xl mx-auto space-y-4">
-  <article class="bg-white rounded-2xl shadow p-4">
-    <div class="text-sm text-gray-500 dark:text-gray-300 mb-1">Publicación original de @{{ original.user.username }}</div>
-    <p class="whitespace-pre-wrap">{{ original.content|linkify|safe }}</p>
+  <!-- Publicación original -->
+  <article class="rounded-2xl shadow-soft p-4
+                  bg-white/90 dark:bg-slate-900/60
+                  border border-slate-200 dark:border-white/10">
+    <div class="text-sm text-gray-500 dark:text-gray-300 mb-1">
+      Publicación original de @{{ original.user.username }}
+    </div>
+    <p class="whitespace-pre-wrap text-slate-800 dark:text-slate-100">
+      {{ original.content|linkify|safe }}
+    </p>
   </article>
-  <div class="bg-white rounded-2xl shadow p-4">
+
+  <!-- Form de la cita -->
+  <div class="rounded-2xl shadow-soft p-4
+              bg-white/90 dark:bg-slate-900/60
+              border border-slate-200 dark:border-white/10">
     <form method="post" enctype="multipart/form-data" class="space-y-3">
       {% csrf_token %}
       {{ form.non_field_errors }}
-      {% if form.errors %}<div class="text-red-600 text-sm">{{ form.errors }}</div>{% endif %}
-      {{ form.content }}
-      {{ form.image }}
-      <div class="text-right">
-        <button class="px-4 py-2 bg-blue-600 text-white rounded-xl">Publicar cita</button>
+      {% if form.errors %}
+        <div class="text-red-500 text-sm">{{ form.errors }}</div>
+      {% endif %}
+
+      <!-- textarea -->
+      <div>
+        {{ form.content }}
+      </div>
+
+      <!-- file -->
+      <div class="flex items-center justify-between gap-3">
+        {{ form.image }}
+        <button class="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white">
+          Publicar cita
+        </button>
       </div>
     </form>
   </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const ta = document.querySelector('textarea[name="content"]');
+  if (!ta) return;
+  setupAutocomplete(ta, {
+    endpointMention: "{% url 'autocomplete_mention' %}",
+    endpointHashtag: "{% url 'autocomplete_hashtag' %}",
+    minChars: 1
+  });
+});
+</script>
 {% endblock %}

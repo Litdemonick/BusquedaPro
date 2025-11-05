@@ -4,6 +4,7 @@
 {% load extras %}
 {% block title %}Publicación - Twittor{% endblock %}
 {% block content %}
+
 <article class="card p-6 max-w-3xl mx-auto">
   <div class="flex gap-3 items-start">
     <a href="{% url 'profile' tweet.user.username %}">
@@ -73,3 +74,23 @@
   {% endfor %}
 </section>
 {% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  // El textarea de comentar suele venir del {{ cform }} con name="content"
+  const ta = document.querySelector('textarea[name="content"]');
+  if (!ta || typeof setupAutocomplete !== 'function') return;
+
+  setupAutocomplete(ta, {
+    endpointMention: "{% url 'autocomplete_mention' %}",
+    endpointHashtag: "{% url 'autocomplete_hashtag' %}",
+    minChars: 1
+  });
+});
+</script>
+{% endblock %}
+
+
+
+
