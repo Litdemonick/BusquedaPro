@@ -8,10 +8,19 @@ import re
 from django.template.loader import render_to_string
 from django.http import JsonResponse
 
-from .models import Tweet, Like, Comment, Follow, UserProfile, Tema
+from .models import Tweet, Like, Comment, Follow, UserProfile, Tema, Hashtag
 from .forms import TweetForm, CommentForm, SignUpForm, ProfileForm
+from django.views.decorators.http import require_GET
+from django.contrib.auth import get_user_model
 
 HASHTAG_RE = re.compile(r"(#\w+)")
+
+# modelo de usuario actual del proyecto
+UserModel = get_user_model()
+
+# helper para leer/limpiar el query param
+def _q(request):
+    return (request.GET.get('q') or '').strip().lstrip('@#')[:30]
 
 def _create_notification(actor, recipient, verb, tweet=None):
     if actor == recipient:
@@ -215,6 +224,7 @@ def busqueda_avanzada(request):
         'tema_seleccionado': tema_id
     })
 
+@require_GET
 @login_required
 def autocomplete(request):
     q = request.GET.get('q', '').strip().lower()
@@ -243,3 +253,33 @@ def autocomplete(request):
             print(f"✅ Encontrados {len(resultados)} hashtags: {resultados}")
 
     return JsonResponse({'results': resultados})
+
+
+@require_GET
+@login_required
+def autocomplete_hashtag(request):
+    q = _q(request)
+    if not q:
+        return JsonResponse({"results": []})
+    tags = Hashtag.objects.filter(name__istartswith=q).values('name')[:8]
+    return JsonResponse({
+        "results": [{"value": f"#{t['name']}", "label": f"#{t['name']}"} for t in tags]
+    })
+
+@require_GET
+@login_required
+def autocomplete_mention(request):
+    q = _q(request)
+    if not q:
+        return JsonResponse({"results": []})
+    users = (UserModel.objects.filter(is_active=True)
+             .filter(Q(username__istartswith=q) |
+                     Q(first_name__istartswith=q) |
+                     Q(last_name__istartswith=q))
+             .values('username', 'first_name', 'last_name')[:8])
+    results = []
+    for u in users:
+        full = f"{u['first_name']} {u['last_name']}".strip()
+        label = f"@{u['username']}" + (f" · {full}" if full else "")
+        results.append({"value": f"@{u['username']}", "label": label})
+    return JsonResponse({"results": results})

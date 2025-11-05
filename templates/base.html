@@ -35,46 +35,34 @@
       .card { @apply bg-white/80 dark:bg-gray-900/70 backdrop-blur rounded-2xl shadow-soft border border-white/50 dark:border-white/10; }
       .chip { @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300; }
       .link { @apply text-brand-600 hover:text-brand-700 hover:underline dark:text-brand-500 dark:hover:text-brand-400; }
-      
-      /* ⬇️⬇️⬇️ AÑADE ESTOS ESTILOS PARA AUTOCOMPLETE ⬇️⬇️⬇️ */
-      .autocomplete-results {
-          display: none;
-          position: absolute;
-          top: 100%;
-          left: 0;
-          right: 0;
-          background: white;
-          border: 1px solid #ddd;
-          border-top: none;
-          max-height: 200px;
-          overflow-y: auto;
-          z-index: 1000;
-          border-radius: 0 0 8px 8px;
-          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      }
+        .autocomplete-results {
 
-      .autocomplete-result {
-          padding: 10px 12px;
-          cursor: pointer;
-          border-bottom: 1px solid #f0f0f0;
-          transition: background-color 0.2s;
-          font-size: 14px;
-      }
-
-      .autocomplete-result:hover,
-      .autocomplete-result.selected {
-          background-color: #f8f9fa;
-      }
-
-      .autocomplete-result:last-child {
-          border-bottom: none;
-      }
-
-      .search-container {
-          position: relative;
-      }
+      @apply hidden absolute left-0 right-0 top-full mt-1
+             bg-white dark:bg-gray-800
+             border border-gray-200 dark:border-gray-700
+             rounded-xl shadow z-50
+             max-h-56 overflow-auto;
     }
-    html, body { height: 100%; }
+
+    .autocomplete-result {
+      @apply px-3 py-2 cursor-pointer text-sm
+             text-gray-800 dark:text-gray-100
+             border-b border-gray-100 dark:border-gray-700/40;
+    }
+
+    .autocomplete-result:last-child {
+      @apply border-b-0;
+    }
+
+    .autocomplete-result:hover,
+    .autocomplete-result.selected {
+      @apply bg-gray-100 dark:bg-gray-700;
+    }
+
+    .search-container { @apply relative; }
+  }
+
+  html, body { height: 100%; }
   </style>
 
   <!-- Bloques extra -->
@@ -148,7 +136,8 @@
   </footer>
 
   <script src="{% static 'app.js' %}"></script>
-  
+  <script src="{% static 'js/autocomplete.js' %}"></script>
+
   <script>
   // Autocomplete para la barra de navegación
   class NavbarAutocomplete {
@@ -179,27 +168,34 @@
           });
       }
       
-      async handleInput(query) {
-          if (query.length < 2) {
-              this.hideResults();
-              return;
-          }
-          
-          try {
-              const response = await fetch(`/autocomplete/?q=${encodeURIComponent(query)}`);
-              
-              if (!response.ok) {
-                  throw new Error(`Error HTTP: ${response.status}`);
-              }
-              
-              const data = await response.json();
-              this.results = data.results || [];
-              this.showResults();
-          } catch (error) {
-              console.error('Error en autocomplete navbar:', error);
-              this.hideResults();
-          }
-      }
+async handleInput(query) {
+  if (query.length < 1) { this.hideResults(); return; }
+
+  let endpoint, q = query;
+  if (q.startsWith('@')) {
+    endpoint = "{% url 'autocomplete_mention' %}";
+    q = q.slice(1);
+  } else if (q.startsWith('#')) {
+    endpoint = "{% url 'autocomplete_hashtag' %}";
+    q = q.slice(1);
+  } else {
+    // sin @ o # no sugerimos (búsqueda normal)
+    this.hideResults();
+    return;
+  }
+
+  try {
+    const res = await fetch(`${endpoint}?q=${encodeURIComponent(q)}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    this.results = (data.results || []).map(r => r.value || r); // soporta {value,label} o string
+    this.showResults();
+  } catch (e) {
+    console.error('Error autocomplete navbar:', e);
+    this.hideResults();
+  }
+}
+
       
       showResults() {
           if (this.results.length === 0) {
@@ -208,18 +204,21 @@
           }
           
           this.resultsContainer.innerHTML = '';
-          this.results.forEach((result, index) => {
-              const div = document.createElement('div');
-              div.className = 'autocomplete-result';
-              div.textContent = result;
-              div.dataset.value = result;
-              
-              div.addEventListener('click', () => {
-                  this.selectResult(result);
-              });
-              
-              this.resultsContainer.appendChild(div);
-          });
+this.results.forEach((r) => {
+  const value = typeof r === 'string' ? r : r.value;
+  const label = typeof r === 'string' ? r : (r.label || r.value);
+
+  const div = document.createElement('div');
+  div.className = 'autocomplete-result';
+  div.textContent = label;       // se ve el label
+  div.dataset.value = value;     // se usa el value para navegar
+
+  div.addEventListener('click', () => {
+    this.selectResult(value);
+  });
+  this.resultsContainer.appendChild(div);
+});
+
           
           this.resultsContainer.style.display = 'block';
           this.selectedIndex = -1;
@@ -274,12 +273,18 @@
           });
       }
       
-      selectResult(value) {
-          this.input.value = value;
-          this.hideResults();
-          // Enviar el formulario automáticamente
-          this.input.form.submit();
+    selectResult(value) {
+      if (value.startsWith('@')) {
+        window.location.href = `/u/${value.slice(1)}/`;
+      } else if (value.startsWith('#')) {
+        window.location.href = `/tag/${value.slice(1)}/`;
+      } else {
+        // fallback por si algún día permites texto normal
+        this.input.value = value;
+        this.input.form.submit();
       }
+    }
+
   }
 
   // Inicializar cuando el DOM esté listo

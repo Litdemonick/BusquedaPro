@@ -22,3 +22,20 @@
   </div>
 </div>
 {% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  // El textarea que renderiza {{ form.content }} tiene name="content"
+  const ta = document.querySelector('textarea[name="content"]');
+  if (!ta) return;
+
+  // Inicializa el módulo
+  setupAutocomplete(ta, {
+    endpointMention: "{% url 'autocomplete_mention' %}",
+    endpointHashtag: "{% url 'autocomplete_hashtag' %}",
+    minChars: 1
+  });
+});
+</script>
+{% endblock %}

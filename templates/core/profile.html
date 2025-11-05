@@ -7,7 +7,7 @@
   <section class="card p-4">
     <div class="flex items-center gap-4">
       {% if profile.avatar %}
-        <img src="{{ profile.avatar.url }}" class="w-16 h-16 rounded-full object-cover" />
+        <img src="{{ profile.avatar.url }}" class="w-16 h-16 rounded-full object-cover" alt="Avatar de {{ profile_user.username }}" title="Avatar de {{ profile_user.username }}" />
       {% else %}
         <div class="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center text-2xl font-bold">{{ profile_user.username|first|upper }}</div>
       {% endif %}

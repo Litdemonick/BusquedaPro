@@ -11,6 +11,9 @@ urlpatterns = [
     path('t/<int:pk>/quote/', views.quote, name='quote'),
     path('u/<str:username>/', views.profile, name='profile'),
     path('toggle-theme/', views.toggle_theme, name='toggle_theme'),
+    path('autocomplete/mention/', views.autocomplete_mention, name='autocomplete_mention'),
+    path('autocomplete/hashtag/', views.autocomplete_hashtag, name='autocomplete_hashtag'),
+
     
     # URLs de búsqueda y autocomplete
     path('search/', views.search, name='search'),
