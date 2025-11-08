@@ -1,0 +1,46 @@
+{% for user in suggested_users %}
+<div class="suggested-user-item flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700 p-2 rounded-lg transition-colors" 
+     data-user-id="{{ user.id }}">
+    <div class="flex items-center space-x-3 flex-1 min-w-0">
+        <a href="{% url 'profile' user.username %}" class="flex-shrink-0">
+            {% if user.userprofile.avatar %}
+                <img src="{{ user.userprofile.avatar.url }}" class="w-10 h-10 rounded-full object-cover" alt="@{{ user.username }}">
+            {% else %}
+                <div class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center font-semibold text-white">
+                    {{ user.username|first|upper }}
+                </div>
+            {% endif %}
+        </a>
+        
+        <div class="user-info flex-1 min-w-0">
+            <a href="{% url 'profile' user.username %}" class="block">
+                <h4 class="font-semibold text-sm text-gray-900 dark:text-white truncate hover:underline">
+                    @{{ user.username }}
+                </h4>
+            </a>
+            {% if user.userprofile.bio %}
+                <p class="text-xs text-gray-500 dark:text-gray-400 truncate mt-1">
+                    {{ user.userprofile.bio|truncatewords:8 }}
+                </p>
+            {% else %}
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Usuario de Twittor
+                </p>
+            {% endif %}
+            <span class="text-xs text-gray-400 dark:text-gray-500 followers-count" 
+                  data-user-id="{{ user.id }}">
+                {{ user.followers_count }} seguidores
+            </span>
+        </div>
+    </div>
+    
+    <div class="follow-action flex-shrink-0 ml-2">
+        <button type="button" 
+                class="follow-btn px-3 py-1 text-white text-xs font-semibold rounded-full transition-colors {% if user.id in following_ids %}bg-gray-600 hover:bg-gray-700{% else %}bg-blue-600 hover:bg-blue-700{% endif %}"
+                data-user-id="{{ user.id }}"
+                data-following="{% if user.id in following_ids %}true{% else %}false{% endif %}">
+            {% if user.id in following_ids %}Dejar de seguir{% else %}Seguir{% endif %}
+        </button>
+    </div>
+</div>
+{% endfor %}

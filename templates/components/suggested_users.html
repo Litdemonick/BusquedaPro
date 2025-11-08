@@ -1,0 +1,40 @@
+<!-- templates/components/suggested_users.html -->
+<div class="suggested-users-card">
+    <div class="suggested-header">
+        <h3 class="font-bold text-lg">Perfiles relacionados</h3>
+    </div>
+    
+    <div class="suggested-users-list mt-3 space-y-3">
+        {% for user in suggested_users %}
+        <div class="suggested-user-item flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <a href="{% url 'profile' user.username %}">
+                    {% if user.userprofile.avatar %}
+                        <img src="{{ user.userprofile.avatar.url }}" class="w-10 h-10 rounded-full object-cover" alt="@{{ user.username }}">
+                    {% else %}
+                        <div class="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-800 flex items-center justify-center font-semibold">
+                            {{ user.username|first|upper }}
+                        </div>
+                    {% endif %}
+                </a>
+                <div class="user-info">
+                    <a href="{% url 'profile' user.username %}" class="username font-semibold text-sm hover:underline">
+                        {{ user.username }}
+                    </a>
+                    <p class="user-bio text-xs text-gray-500">{{ user.userprofile.bio|default:""|truncatewords:5 }}</p>
+                </div>
+            </div>
+            <div class="follow-action">
+                <form action="{% url 'follow_user' user.id %}" method="post">
+                    {% csrf_token %}
+                    <button type="submit" class="text-xs bg-blue-600 text-white px-3 py-1 rounded-full">Seguir</button>
+                </form>
+            </div>
+        </div>
+        {% empty %}
+        <div class="no-suggestions text-sm text-gray-500">
+            No hay sugerencias en este momento.
+        </div>
+        {% endfor %}
+    </div>
+</div>

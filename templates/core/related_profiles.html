@@ -1,0 +1,44 @@
+{% load static %}
+<div class="card p-4 mb-6 border-2 border-red-500"> <!-- Borde rojo para visibility -->
+    <h3 class="font-bold text-lg mb-4 flex items-center gap-2">
+        🎯 DEBUG: Perfiles relacionados 
+    </h3>
+    
+    <div class="mb-4 p-2 bg-blue-100 rounded">
+        <strong>Total perfiles:</strong> {{ related_profiles|length }}<br>
+        <strong>Query:</strong> "{{ q }}"
+    </div>
+    
+    <div class="space-y-4">
+        {% for profile in related_profiles %}
+            <div class="flex items-center gap-3 p-3 rounded-lg bg-green-100">
+                <div class="flex-shrink-0">
+                    {% if profile.userprofile.avatar %}
+                        <img src="{{ profile.userprofile.avatar.url }}" class="w-10 h-10 rounded-full">
+                    {% else %}
+                        <div class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white">
+                            {{ profile.username|first|upper }}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <div class="flex-1">
+                    <div class="font-medium">@{{ profile.username }}</div>
+                    <div class="text-sm">
+                        {{ profile.first_name }} {{ profile.last_name }}
+                    </div>
+                    {% if profile.userprofile.bio %}
+                        <div class="text-xs text-gray-600">{{ profile.userprofile.bio }}</div>
+                    {% endif %}
+                </div>
+                
+                <button class="btn-primary text-xs py-1 px-3">Seguir</button>
+            </div>
+        {% empty %}
+            <div class="text-center py-4 text-red-500">
+                <strong>❌ NO HAY PERFILES RELACIONADOS</strong><br>
+                <span class="text-sm">Query: "{{ q }}"</span>
+            </div>
+        {% endfor %}
+    </div>
+</div>

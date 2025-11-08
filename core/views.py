@@ -13,6 +13,11 @@ from .forms import TweetForm, CommentForm, SignUpForm, ProfileForm
 from django.views.decorators.http import require_GET
 from django.contrib.auth import get_user_model
 
+# Importaciones adicionales
+from django.db.models import Q
+from django.contrib.auth import get_user_model
+from django.shortcuts import render
+
 HASHTAG_RE = re.compile(r"(#\w+)")
 
 # modelo de usuario actual del proyecto
@@ -54,17 +59,34 @@ def timeline(request):
     # Users to show: me + I'm following
     following_ids = list(Follow.objects.filter(follower=request.user).values_list('following_id', flat=True))
     qs = Tweet.objects.filter(user_id__in=[request.user.id, *following_ids]).select_related('user', 'user__userprofile')
+    
+    # Obtener usuarios sugeridos
+    User = get_user_model()
+    excluded_ids = [request.user.id] + following_ids
+    
+    suggested_users = User.objects.exclude(
+        id__in=excluded_ids
+    ).select_related('userprofile').annotate(
+        followers_count=Count('followers')
+    ).order_by('-followers_count', '-date_joined')[:5]
+
     if request.method == 'POST':
         form = TweetForm(request.POST, request.FILES)
         if form.is_valid():
             tw = form.save(commit=False)
             tw.user = request.user
             tw.save()
-            form.save_m2m()  # Importante para guardar los temas
+            form.save_m2m()
             return redirect('timeline')
     else:
         form = TweetForm()
-    return render(request, 'core/timeline.html', {'tweets': qs, 'form': form})
+    
+    return render(request, 'core/timeline.html', {
+        'tweets': qs, 
+        'form': form,
+        'suggested_users': suggested_users,
+        'following_ids': following_ids  # ¡IMPORTANTE! Agregar esto
+    })
 
 @login_required
 def explore(request):
@@ -109,6 +131,18 @@ def profile(request, username):
     is_me = request.user == user
     is_following = Follow.objects.filter(follower=request.user, following=user).exists()
     tweets = Tweet.objects.filter(user=user)
+    
+    # Obtener conteos de seguidores y seguidos
+    followers_count = user.followers.count()
+    following_count = user.following.count()
+    
+    # Obtener listas de seguidores y seguidos
+    followers = User.objects.filter(following__following=user).select_related('userprofile')
+    following = User.objects.filter(followers__follower=user).select_related('userprofile')
+
+    # Obtener los IDs de usuarios que el usuario actual sigue
+    current_user_following_ids = set(Follow.objects.filter(follower=request.user).values_list('following_id', flat=True))
+
     if request.method == 'POST':
         # follow/unfollow or edit profile
         action = request.POST.get('action')
@@ -124,7 +158,19 @@ def profile(request, username):
         return redirect('profile', username=username)
 
     form = ProfileForm(instance=profile) if is_me else None
-    ctx = {'profile_user': user, 'profile': profile, 'is_me': is_me, 'is_following': is_following, 'tweets': tweets, 'form': form}
+    ctx = {
+        'profile_user': user, 
+        'profile': profile, 
+        'is_me': is_me, 
+        'is_following': is_following, 
+        'tweets': tweets, 
+        'form': form,
+        'followers_count': followers_count,
+        'following_count': following_count,
+        'followers': followers,
+        'following': following,
+        'current_user_following_ids': current_user_following_ids,  # Agregar esta línea
+    }
     return render(request, 'core/profile.html', ctx)
 
 
@@ -283,3 +329,172 @@ def autocomplete_mention(request):
         label = f"@{u['username']}" + (f" · {full}" if full else "")
         results.append({"value": f"@{u['username']}", "label": label})
     return JsonResponse({"results": results})
+
+
+from django.views.generic import DetailView
+from django.db.models import Count
+
+# Vista para obtener sugerencias de usuarios
+def get_user_suggestions(request, count=5):
+    """Obtener sugerencias de usuarios para el usuario actual"""
+    if not request.user.is_authenticated:
+        return []
+    
+    User = get_user_model()
+    current_user = request.user
+    
+    # Excluir al usuario actual y usuarios que ya sigue
+    excluded_users = [current_user.id]
+    if hasattr(current_user, 'following'):
+        excluded_users.extend(current_user.following.values_list('id', flat=True))
+    
+    # Lógica de sugerencias (puedes ajustar esto)
+    suggestions = User.objects.exclude(
+        id__in=excluded_users
+    ).annotate(
+        followers_count=Count('followers')
+    ).order_by('-followers_count')[:count]
+    
+    return suggestions
+
+
+# Agrega esta importación al principio del archivo si no está
+from django.db.models import Count
+
+# Agrega estas vistas después de tu vista timeline
+@login_required
+def follow_user(request, user_id):
+    """Vista para seguir a un usuario"""
+    user_to_follow = get_object_or_404(User, id=user_id)
+    
+    # Verificar que no es el mismo usuario y que no lo sigue ya
+    if request.user != user_to_follow and not Follow.objects.filter(follower=request.user, following=user_to_follow).exists():
+        Follow.objects.create(follower=request.user, following=user_to_follow)
+        # Opcional: agregar mensaje de éxito
+        from django.contrib import messages
+        messages.success(request, f'Ahora sigues a @{user_to_follow.username}')
+    
+    return redirect('timeline')
+
+@login_required
+def unfollow_user(request, user_id):
+    """Vista para dejar de seguir a un usuario"""
+    user_to_unfollow = get_object_or_404(User, id=user_id)
+    
+    Follow.objects.filter(follower=request.user, following=user_to_unfollow).delete()
+    # Opcional: agregar mensaje de info
+    from django.contrib import messages
+    messages.info(request, f'Has dejado de seguir a @{user_to_unfollow.username}')
+    
+    return redirect('timeline')
+
+@login_required
+def explore_users(request):
+    """Página para descubrir más usuarios"""
+    # Excluir al usuario actual y usuarios que ya sigue
+    following_ids = list(Follow.objects.filter(follower=request.user).values_list('following_id', flat=True))
+    excluded_ids = [request.user.id] + following_ids
+    
+    users = User.objects.exclude(
+        id__in=excluded_ids
+    ).select_related('userprofile').annotate(
+        followers_count=Count('followers')
+    ).order_by('-followers_count', '-date_joined')
+    
+    return render(request, 'core/explore_users.html', {'users': users})
+
+@login_required
+def load_more_suggested_users(request):
+    """Vista para cargar más usuarios sugeridos via AJAX"""
+    page = int(request.GET.get('page', 1))
+    users_per_page = 5
+    
+    # Calcular offset
+    offset = (page - 1) * users_per_page
+    
+    User = get_user_model()
+    following_ids = list(Follow.objects.filter(follower=request.user).values_list('following_id', flat=True))
+    excluded_ids = [request.user.id] + following_ids
+    
+    # Obtener usuarios con paginación
+    users = User.objects.exclude(
+        id__in=excluded_ids
+    ).select_related('userprofile').annotate(
+        followers_count=Count('followers')
+    ).order_by('-followers_count', '-date_joined')[offset:offset + users_per_page]
+    
+    # Renderizar el template con los usuarios
+    html = render_to_string('components/suggested_users_items.html', {
+        'suggested_users': users,
+        'following_ids': following_ids  # ¡IMPORTANTE! Agregar esto
+    })
+    
+    return JsonResponse({
+        'html': html,
+        'has_more': len(users) == users_per_page,
+        'next_page': page + 1
+    })
+
+@login_required
+def toggle_follow(request, user_id):
+    """Vista para seguir/dejar de seguir a un usuario via AJAX"""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+    
+    User = get_user_model()
+    user_to_toggle = get_object_or_404(User, id=user_id)
+    
+    # Verificar que no es el mismo usuario
+    if request.user == user_to_toggle:
+        return JsonResponse({'error': 'No puedes seguirte a ti mismo'}, status=400)
+    
+    # Verificar si ya sigue al usuario
+    follow_exists = Follow.objects.filter(
+        follower=request.user, 
+        following=user_to_toggle
+    ).exists()
+    
+    if follow_exists:
+        # Dejar de seguir
+        Follow.objects.filter(follower=request.user, following=user_to_toggle).delete()
+        action = 'unfollow'
+        button_text = 'Seguir'
+        button_class = 'bg-blue-600 hover:bg-blue-700'
+    else:
+        # Seguir
+        Follow.objects.create(follower=request.user, following=user_to_toggle)
+        action = 'follow'
+        button_text = 'Dejar de seguir'
+        button_class = 'bg-gray-600 hover:bg-gray-700'
+    
+    # Obtener el nuevo conteo de seguidores
+    followers_count = user_to_toggle.followers.count()
+    
+    return JsonResponse({
+        'action': action,
+        'button_text': button_text,
+        'button_class': button_class,
+        'followers_count': followers_count,
+        'success': True
+    })
+
+@login_required
+def search_users(request):
+    """Vista para búsqueda de usuarios via AJAX (para la barra de búsqueda)"""
+    q = request.GET.get('q', '').strip()
+    users = []
+    
+    if q and len(q) >= 2:
+        users = User.objects.filter(
+            username__icontains=q
+        ).select_related('userprofile')[:10]
+    
+    # Preparar datos para JSON
+    users_data = []
+    for user in users:
+        users_data.append({
+            'username': user.username,
+            'bio': user.userprofile.bio if hasattr(user, 'userprofile') and user.userprofile.bio else ''
+        })
+    
+    return JsonResponse({'users': users_data})

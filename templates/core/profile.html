@@ -2,6 +2,221 @@
 {% load static %}
 {% load extras %}
 {% block title %}Perfil - Twittor{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Tus estilos CSS existentes se mantienen igual */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(4px);
+}
+
+.modal-content {
+    background: white;
+    border-radius: 16px;
+    width: 90%;
+    max-width: 400px;
+    max-height: 80vh;
+    overflow: hidden;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.dark .modal-content {
+    background: #1f2937;
+    color: white;
+}
+
+.modal-header {
+    padding: 16px;
+    border-bottom: 1px solid #e5e7eb;
+    text-align: center;
+    position: relative;
+}
+
+.dark .modal-header {
+    border-bottom: 1px solid #374151;
+}
+
+.modal-close {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    font-size: 18px;
+    cursor: pointer;
+    color: #6b7280;
+}
+
+.modal-close:hover {
+    color: #374151;
+}
+
+.dark .modal-close {
+    color: #9ca3af;
+}
+
+.dark .modal-close:hover {
+    color: #d1d5db;
+}
+
+.modal-body {
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.modal-tabs {
+    display: flex;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.dark .modal-tabs {
+    border-bottom: 1px solid #374151;
+}
+
+.modal-tab {
+    flex: 1;
+    padding: 12px;
+    text-align: center;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.modal-tab.active {
+    border-bottom: 2px solid #3b82f6;
+    color: #3b82f6;
+}
+
+.dark .modal-tab.active {
+    color: #60a5fa;
+    border-bottom-color: #60a5fa;
+}
+
+.modal-tab:not(.active) {
+    color: #6b7280;
+}
+
+.dark .modal-tab:not(.active) {
+    color: #9ca3af;
+}
+
+.user-list {
+    padding: 8px 0;
+}
+
+.user-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    transition: background-color 0.2s;
+}
+
+.user-item:hover {
+    background-color: #f9fafb;
+}
+
+.dark .user-item:hover {
+    background-color: #374151;
+}
+
+.user-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    margin-right: 12px;
+    flex-shrink: 0;
+}
+
+.user-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.user-username {
+    font-weight: 600;
+    color: #111827;
+    text-decoration: none;
+}
+
+.dark .user-username {
+    color: white;
+}
+
+.user-username:hover {
+    text-decoration: underline;
+}
+
+.user-bio {
+    font-size: 14px;
+    color: #6b7280;
+    margin-top: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.dark .user-bio {
+    color: #9ca3af;
+}
+
+.follow-btn-modal {
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.follow-btn-modal.follow {
+    background: #3b82f6;
+    color: white;
+}
+
+.follow-btn-modal.follow:hover {
+    background: #2563eb;
+}
+
+.follow-btn-modal.unfollow {
+    background: #6b7280;
+    color: white;
+}
+
+.follow-btn-modal.unfollow:hover {
+    background: #4b5563;
+}
+
+.no-users {
+    text-align: center;
+    padding: 40px 20px;
+    color: #6b7280;
+}
+
+.dark .no-users {
+    color: #9ca3af;
+}
+
+.hidden {
+    display: none !important;
+}
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="max-w-3xl mx-auto space-y-6">
   <section class="card p-4">
@@ -14,12 +229,28 @@
       <div class="flex-1">
         <h1 class="text-xl font-bold">@{{ profile_user.username }}</h1>
         <p class="text-gray-600 dark:text-gray-300">{{ profile.bio|default:"Sin biografía" }}</p>
+        
+        <!-- Estadísticas de seguidores/seguidos -->
+        <div class="flex space-x-6 mt-3 text-sm">
+          <div class="cursor-pointer hover:underline" onclick="openFollowModal('followers')">
+            <span class="font-semibold">{{ followers_count }}</span>
+            <span class="text-gray-600 dark:text-gray-400">Seguidores</span>
+          </div>
+          <div class="cursor-pointer hover:underline" onclick="openFollowModal('following')">
+            <span class="font-semibold">{{ following_count }}</span>
+            <span class="text-gray-600 dark:text-gray-400">Seguidos</span>
+          </div>
+          <div>
+            <span class="font-semibold">{{ tweets.count }}</span>
+            <span class="text-gray-600 dark:text-gray-400">Publicaciones</span>
+          </div>
+        </div>
       </div>
       {% if not is_me %}
       <form method="post">
         {% csrf_token %}
         {% if is_following %}
-          <button name="action" value="unfollow" class="px-4 py-2 bg-gray-200 rounded-xl">Dejar de seguir</button>
+          <button name="action" value="unfollow" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-xl">Dejar de seguir</button>
         {% else %}
           <button name="action" value="follow" class="px-4 py-2 bg-blue-600 text-white rounded-xl">Seguir</button>
         {% endif %}
@@ -68,4 +299,289 @@
     {% endfor %}
   </section>
 </div>
+
+<!-- Modal de Seguidores/Seguidos -->
+<div id="followModal" class="modal-overlay hidden">
+    <div class="modal-content">
+        <div class="modal-header">
+            <button class="modal-close" onclick="closeFollowModal()">×</button>
+            <h3 class="font-semibold" id="modalTitle">Seguidores</h3>
+        </div>
+        
+        <div class="modal-tabs">
+            <button class="modal-tab active" onclick="switchTab('followers')">Seguidores</button>
+            <button class="modal-tab" onclick="switchTab('following')">Seguidos</button>
+        </div>
+        
+        <div class="modal-body">
+            <div id="followersList" class="user-list">
+                {% for follower in followers %}
+                <div class="user-item" id="user-{{ follower.id }}">
+                    <a href="{% url 'profile' follower.username %}" class="flex items-center flex-1 min-w-0">
+                        {% if follower.userprofile.avatar %}
+                            <img src="{{ follower.userprofile.avatar.url }}" class="user-avatar object-cover" alt="@{{ follower.username }}">
+                        {% else %}
+                            <div class="user-avatar bg-blue-500 flex items-center justify-center text-white font-semibold">
+                                {{ follower.username|first|upper }}
+                            </div>
+                        {% endif %}
+                        <div class="user-info">
+                            <div class="user-username">@{{ follower.username }}</div>
+                            {% if follower.userprofile.bio %}
+                                <div class="user-bio">{{ follower.userprofile.bio|truncatewords:8 }}</div>
+                            {% endif %}
+                        </div>
+                    </a>
+                    <!-- CORRECCIÓN: Usar current_user_following_ids para determinar el estado -->
+                    {% if request.user != follower %}
+                        {% if follower.id in current_user_following_ids %}
+                            <button class="follow-btn-modal unfollow" data-user-id="{{ follower.id }}">Dejar de seguir</button>
+                        {% else %}
+                            <button class="follow-btn-modal follow" data-user-id="{{ follower.id }}">Seguir</button>
+                        {% endif %}
+                    {% endif %}
+                </div>
+                {% empty %}
+                <div class="no-users">
+                    <p>No hay seguidores</p>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <div id="followingList" class="user-list hidden">
+                {% for followed_user in following %}
+                <div class="user-item" id="user-{{ followed_user.id }}">
+                    <a href="{% url 'profile' followed_user.username %}" class="flex items-center flex-1 min-w-0">
+                        {% if followed_user.userprofile.avatar %}
+                            <img src="{{ followed_user.userprofile.avatar.url }}" class="user-avatar object-cover" alt="@{{ followed_user.username }}">
+                        {% else %}
+                            <div class="user-avatar bg-blue-500 flex items-center justify-center text-white font-semibold">
+                                {{ followed_user.username|first|upper }}
+                            </div>
+                        {% endif %}
+                        <div class="user-info">
+                            <div class="user-username">@{{ followed_user.username }}</div>
+                            {% if followed_user.userprofile.bio %}
+                                <div class="user-bio">{{ followed_user.userprofile.bio|truncatewords:8 }}</div>
+                            {% endif %}
+                        </div>
+                    </a>
+                    <!-- CORRECCIÓN: Usar current_user_following_ids para determinar el estado -->
+                    {% if request.user != followed_user %}
+                        {% if followed_user.id in current_user_following_ids %}
+                            <button class="follow-btn-modal unfollow" data-user-id="{{ followed_user.id }}">Dejar de seguir</button>
+                        {% else %}
+                            <button class="follow-btn-modal follow" data-user-id="{{ followed_user.id }}">Seguir</button>
+                        {% endif %}
+                    {% endif %}
+                </div>
+                {% empty %}
+                <div class="no-users">
+                    <p>No sigue a nadie</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% block extra_js %}
+<script>
+// Variables globales
+let currentTab = 'followers';
+
+// Abrir modal de seguidores/seguidos
+function openFollowModal(type) {
+    const modal = document.getElementById('followModal');
+    const modalTitle = document.getElementById('modalTitle');
+    
+    currentTab = type;
+    modalTitle.textContent = type === 'followers' ? 'Seguidores' : 'Seguidos';
+    
+    // Activar la pestaña correspondiente
+    switchTab(type);
+    
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+// Cerrar modal
+function closeFollowModal() {
+    const modal = document.getElementById('followModal');
+    modal.classList.add('hidden');
+    document.body.style.overflow = 'auto';
+}
+
+// Cambiar entre pestañas
+function switchTab(tab) {
+    // Actualizar botones de pestañas
+    document.querySelectorAll('.modal-tab').forEach(button => {
+        button.classList.toggle('active', button.textContent.toLowerCase().includes(tab));
+    });
+    
+    // Mostrar/ocultar listas
+    document.getElementById('followersList').classList.toggle('hidden', tab !== 'followers');
+    document.getElementById('followingList').classList.toggle('hidden', tab !== 'following');
+    
+    currentTab = tab;
+}
+
+// Event delegation para los botones de seguir/dejar de seguir
+document.addEventListener('click', function(e) {
+    // Seguir usuario
+    if (e.target.classList.contains('follow-btn-modal') && e.target.classList.contains('follow')) {
+        const button = e.target;
+        const userId = button.getAttribute('data-user-id');
+        followUser(userId, button);
+    }
+    
+    // Dejar de seguir usuario
+    if (e.target.classList.contains('follow-btn-modal') && e.target.classList.contains('unfollow')) {
+        const button = e.target;
+        const userId = button.getAttribute('data-user-id');
+        unfollowUser(userId, button);
+    }
+});
+
+// Seguir usuario desde el modal
+function followUser(userId, button) {
+    console.log('Siguendo usuario:', userId);
+    
+    // Mostrar estado de carga
+    button.disabled = true;
+    button.textContent = '...';
+    
+    fetch(`/toggle_follow/${userId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({})
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Error en la respuesta del servidor');
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Respuesta:', data);
+        if (data.success) {
+            // Actualizar el botón a "Dejar de seguir"
+            button.textContent = 'Dejar de seguir';
+            button.classList.remove('follow');
+            button.classList.add('unfollow');
+            button.disabled = false;
+            
+            // Actualizar todos los botones para este usuario en ambas pestañas
+            updateAllUserButtons(userId, 'unfollow');
+            
+            // Actualizar el contador de seguidos del usuario actual si es necesario
+            updateFollowCounts();
+        } else {
+            console.error('Error del servidor:', data.error);
+            button.disabled = false;
+            button.textContent = 'Seguir';
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error al seguir al usuario');
+        button.disabled = false;
+        button.textContent = 'Seguir';
+    });
+}
+
+// Dejar de seguir usuario desde el modal
+function unfollowUser(userId, button) {
+    console.log('Dejando de seguir usuario:', userId);
+    
+    // Mostrar estado de carga
+    button.disabled = true;
+    button.textContent = '...';
+    
+    fetch(`/toggle_follow/${userId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({})
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Error en la respuesta del servidor');
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Respuesta:', data);
+        if (data.success) {
+            // Actualizar el botón a "Seguir"
+            button.textContent = 'Seguir';
+            button.classList.remove('unfollow');
+            button.classList.add('follow');
+            button.disabled = false;
+            
+            // Actualizar todos los botones para este usuario en ambas pestañas
+            updateAllUserButtons(userId, 'follow');
+            
+            // Actualizar el contador de seguidos del usuario actual si es necesario
+            updateFollowCounts();
+        } else {
+            console.error('Error del servidor:', data.error);
+            button.disabled = false;
+            button.textContent = 'Dejar de seguir';
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error al dejar de seguir al usuario');
+        button.disabled = false;
+        button.textContent = 'Dejar de seguir';
+    });
+}
+
+// Actualizar todos los botones para un usuario específico en ambas pestañas
+function updateAllUserButtons(userId, action) {
+    const allUserButtons = document.querySelectorAll(`.follow-btn-modal[data-user-id="${userId}"]`);
+    
+    allUserButtons.forEach(button => {
+        if (action === 'follow') {
+            button.textContent = 'Seguir';
+            button.classList.remove('unfollow');
+            button.classList.add('follow');
+        } else if (action === 'unfollow') {
+            button.textContent = 'Dejar de seguir';
+            button.classList.remove('follow');
+            button.classList.add('unfollow');
+        }
+        button.disabled = false;
+    });
+}
+
+// Función para actualizar contadores (puedes implementarla si es necesario)
+function updateFollowCounts() {
+    // Aquí puedes recargar los contadores de seguidores/seguidos si es necesario
+    // Por ejemplo, podrías hacer una petición AJAX para obtener los nuevos conteos
+    console.log('Actualizar contadores de seguidores/seguidos');
+}
+
+// Cerrar modal al hacer clic fuera
+document.addEventListener('click', function(e) {
+    const modal = document.getElementById('followModal');
+    if (e.target === modal) {
+        closeFollowModal();
+    }
+});
+
+// Cerrar modal con ESC
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeFollowModal();
+    }
+});
+</script>
+{% endblock %}
+
 {% endblock %}
