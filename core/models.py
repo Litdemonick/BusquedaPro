@@ -38,21 +38,41 @@ class Tema(models.Model):
     class Meta:
         verbose_name_plural = "Temas"
 
+from django.db import models
+from django.contrib.auth.models import User
+from django.urls import reverse
+
 class Tweet(models.Model):
-    parent = models.ForeignKey('self', null=True, blank=True, on_delete=models.SET_NULL, related_name='children')
+    parent = models.ForeignKey(
+        'self',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='children'
+    )
     is_retweet = models.BooleanField(default=False)
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='tweets'
+    )
+
     content = models.CharField(max_length=280)
     image = models.ImageField(upload_to='tweets/', blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    # NUEVO CAMPO
-    temas = models.ManyToManyField(Tema, blank=True, related_name='tweets')
+
+    temas = models.ManyToManyField(
+        'Tema',
+        blank=True,
+        related_name='tweets'
+    )
 
     class Meta:
         ordering = ['-created_at']
 
     def __str__(self):
-        return f'{self.user.username}: {self.content[:30]}'
+        return f'@{self.user.username}: {self.content[:30]}'
 
     def get_absolute_url(self):
         return reverse('tweet_detail', args=[self.pk])
@@ -60,6 +80,7 @@ class Tweet(models.Model):
     @property
     def like_count(self) -> int:
         return self.likes.count()
+
 
 class Like(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)

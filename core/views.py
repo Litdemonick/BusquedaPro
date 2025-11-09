@@ -5,6 +5,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.http import HttpResponseForbidden
 from django.db.models import Q
 import re
+from django.core.paginator import Paginator
 from django.template.loader import render_to_string
 from django.http import JsonResponse
 
@@ -12,6 +13,7 @@ from .models import Tweet, Like, Comment, Follow, UserProfile, Tema, Hashtag
 from .forms import TweetForm, CommentForm, SignUpForm, ProfileForm
 from django.views.decorators.http import require_GET
 from django.contrib.auth import get_user_model
+from django.core.paginator import Paginator
 
 # Importaciones adicionales
 from django.db.models import Q
@@ -54,22 +56,36 @@ def signup_view(request):
         form = SignUpForm()
     return render(request, 'registration/signup.html', {'form': form})
 
+from django.core.paginator import Paginator
+from django.contrib.auth import get_user_model
+from django.db.models import Count
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+
 @login_required
 def timeline(request):
-    # Users to show: me + I'm following
+    # Usuarios a mostrar: yo + los que sigo
     following_ids = list(Follow.objects.filter(follower=request.user).values_list('following_id', flat=True))
-    qs = Tweet.objects.filter(user_id__in=[request.user.id, *following_ids]).select_related('user', 'user__userprofile')
-    
-    # Obtener usuarios sugeridos
+
+    qs = Tweet.objects.select_related('user', 'user__userprofile').order_by('-created_at')
+
+
+    # Paginación
+    paginator = Paginator(qs, 5)  # ← 5 tweets por página
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    # Usuarios sugeridos
     User = get_user_model()
     excluded_ids = [request.user.id] + following_ids
-    
+
     suggested_users = User.objects.exclude(
         id__in=excluded_ids
     ).select_related('userprofile').annotate(
         followers_count=Count('followers')
     ).order_by('-followers_count', '-date_joined')[:5]
 
+    # Formulario de nuevo tweet
     if request.method == 'POST':
         form = TweetForm(request.POST, request.FILES)
         if form.is_valid():
@@ -80,18 +96,30 @@ def timeline(request):
             return redirect('timeline')
     else:
         form = TweetForm()
-    
+
     return render(request, 'core/timeline.html', {
-        'tweets': qs, 
+        'tweets': page_obj,           # ← solo los tweets paginados
+        'page_obj': page_obj,         # ← para paginación en base.html
         'form': form,
         'suggested_users': suggested_users,
-        'following_ids': following_ids  # ¡IMPORTANTE! Agregar esto
+        'following_ids': following_ids
+        
     })
+
 
 @login_required
 def explore(request):
-    qs = Tweet.objects.select_related('user', 'user__userprofile').all()[:100]
-    return render(request, 'core/timeline.html', {'tweets': qs, 'form': TweetForm()})
+    qs = Tweet.objects.select_related('user', 'user__userprofile').order_by('-created_at')
+    paginator = Paginator(qs, 7)  # ← 7 tweets por página
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, 'core/timeline.html', {
+        'tweets': page_obj,     # ← para el bucle en el template
+        'page_obj': page_obj,   # ← para que base.html muestre la paginación
+        'form': TweetForm()
+    })
+
 
 @login_required
 def like_toggle(request, pk):
@@ -130,7 +158,26 @@ def profile(request, username):
     profile = get_object_or_404(UserProfile, user=user)
     is_me = request.user == user
     is_following = Follow.objects.filter(follower=request.user, following=user).exists()
-    tweets = Tweet.objects.filter(user=user)
+    # Filtro por texto o hashtag
+    query = request.GET.get('q', '').strip()
+    tweets_queryset = Tweet.objects.filter(user=user).exclude(content='')
+
+
+
+
+    if query:
+        if query.startswith('#'):
+            hashtag = query[1:].lower()
+            tweets_queryset = tweets_queryset.filter(content__iregex=rf'(^|\s)#({hashtag})\b')
+        else:
+            tweets_queryset = tweets_queryset.filter(Q(content__icontains=query) | Q(user__username__icontains=query))
+
+    # Paginación
+    paginator = Paginator(tweets_queryset.order_by('-created_at'), 5)  # 5 tweets por página
+    
+    page_number = request.GET.get('page')
+    tweets = paginator.get_page(page_number)
+    
     
     # Obtener conteos de seguidores y seguidos
     followers_count = user.followers.count()
@@ -165,6 +212,7 @@ def profile(request, username):
         'is_following': is_following, 
         'tweets': tweets, 
         'form': form,
+        'page_obj': tweets,  # ← ESTA es la clave para que base.html muestre la paginación
         'followers_count': followers_count,
         'following_count': following_count,
         'followers': followers,
@@ -192,13 +240,32 @@ def tag(request, tag):
     tweets = Tweet.objects.filter(content__iregex=rf'(^|\s)#({tag_lower})\b').select_related('user')
     return render(request, 'core/tag.html', {'tag': tag, 'tweets': tweets})
 
+from django.core.paginator import Paginator
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render
+
 @login_required
 def notifications(request):
     from .models import Notification
-    notifs = Notification.objects.filter(recipient=request.user).select_related('actor', 'actor__userprofile', 'tweet').order_by('-created_at')[:50]
-    # mark as read
+
+    # Obtener todas las notificaciones ordenadas
+    notifs_qs = Notification.objects.filter(
+        recipient=request.user
+    ).select_related('actor', 'actor__userprofile', 'tweet').order_by('-created_at')
+
+    # Marcar como leídas
     Notification.objects.filter(recipient=request.user, read=False).update(read=True)
-    return render(request, 'core/notifications.html', {'notifs': notifs})
+
+    # Paginación: 5 notificaciones por página
+    paginator = Paginator(notifs_qs, 5)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, 'core/notifications.html', {
+        'notifs': page_obj,     # ← para el bucle en el template
+        'page_obj': page_obj    # ← para mostrar controles de paginación
+    })
+
 
 @login_required
 def retweet(request, pk):
@@ -235,40 +302,138 @@ def quote(request, pk):
 def tema_feed(request, slug):
     tema = get_object_or_404(Tema, slug=slug)
     tweets = Tweet.objects.filter(temas=tema).select_related('user', 'user__userprofile').order_by('-created_at')
+    from django.core.paginator import Paginator
+
+    # Supongamos que tienes una queryset llamada qs
+    paginator = Paginator(tweets, 7)  # ← 7 tweets por página
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+
+    
     
     return render(request, 'core/tema_feed.html', {
         'tema': tema,
-        'tweets': tweets,
+        'tweets': page_obj,      # ← para el bucle en el template
+        'page_obj': page_obj,    # ← para que base.html muestre la paginación
         'form': TweetForm()
     })
 
+from django.shortcuts import render
+from django.db.models import Q, Count
+from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
+from django.contrib.auth.models import User
+from .models import Tweet, Tema
+from datetime import datetime
+import random
+
 @login_required
 def busqueda_avanzada(request):
+    """
+    Vista de búsqueda avanzada con múltiples filtros:
+    - Búsqueda por texto/hashtag/usuario (q)
+    - Filtro por tema
+    - Rango de fechas
+    - Ordenamiento (relevancia, reciente, antiguo)
+    - Paginación
+    """
+    
+    # Obtener parámetros de búsqueda
     q = request.GET.get('q', '').strip()
     tema_id = request.GET.get('tema', '')
+    fecha_desde = request.GET.get('fecha_desde', '')
+    fecha_hasta = request.GET.get('fecha_hasta', '')
+    orden = request.GET.get('orden', 'relevancia')
     
+    # Iniciar queryset base
     tweets = Tweet.objects.all().select_related('user', 'user__userprofile')
     
-    # DETECTAR SI ES UN HASHTAG
+    # Filtro por hashtag o texto
     if q.startswith('#'):
-        hashtag = q[1:].lower()  # Remover el # y hacer lowercase
+        # Búsqueda específica de hashtag
+        hashtag = q[1:].lower()
         tweets = tweets.filter(content__iregex=rf'(^|\s)#({hashtag})\b')
     elif q:
-        # Búsqueda normal
-        tweets = tweets.filter(Q(content__icontains=q) | Q(user__username__icontains=q))
+        # Filtro por texto o usuario
+        tweets = tweets.filter(
+            Q(content__icontains=q) | 
+            Q(user__username__icontains=q)
+        )
     
+    # Aplicar filtro por tema
     if tema_id:
-        tweets = tweets.filter(temas__id=tema_id)
+        try:
+            tweets = tweets.filter(temas__id=int(tema_id))
+        except (ValueError, TypeError):
+            pass
     
-    tweets = tweets[:100]
+    # Aplicar filtro de fecha desde
+    if fecha_desde:
+        try:
+            fecha_desde_obj = datetime.strptime(fecha_desde, '%Y-%m-%d')
+            tweets = tweets.filter(created_at__gte=fecha_desde_obj)
+        except (ValueError, TypeError):
+            pass
     
-    return render(request, 'core/busqueda_avanzada.html', {
+    # Aplicar filtro de fecha hasta
+    if fecha_hasta:
+        try:
+            # Agregar 23:59:59 para incluir todo el día
+            fecha_hasta_obj = datetime.strptime(fecha_hasta, '%Y-%m-%d')
+            fecha_hasta_obj = fecha_hasta_obj.replace(hour=23, minute=59, second=59)
+            tweets = tweets.filter(created_at__lte=fecha_hasta_obj)
+        except (ValueError, TypeError):
+            pass
+    
+    # Aplicar ordenamiento
+    if orden == 'reciente':
+        tweets = tweets.order_by('-created_at')
+    elif orden == 'antiguo':
+        tweets = tweets.order_by('created_at')
+    elif orden == 'relevancia':
+        # Ordenar por relevancia: cantidad de coincidencias + interacciones
+        if q:
+            # Si hay búsqueda de texto, priorizar coincidencias exactas
+            tweets = tweets.annotate(
+                num_temas=Count('temas'),
+                num_likes_count=Count('likes'),
+                num_retweets=Count('children'),  # children son los retweets
+                num_comments=Count('comments')
+            ).order_by('-num_temas', '-num_likes_count', '-num_retweets', '-num_comments', '-created_at')
+        else:
+            # Sin búsqueda de texto, ordenar por popularidad
+            tweets = tweets.annotate(
+                num_likes_count=Count('likes'),
+                num_retweets=Count('children'),  # children son los retweets
+                num_comments=Count('comments')
+            ).order_by('-num_likes_count', '-num_retweets', '-num_comments', '-created_at')
+    else:
+        # Por defecto, orden cronológico inverso
+        tweets = tweets.order_by('-created_at')
+    
+    # Optimizar consulta con prefetch_related para temas
+    tweets = tweets.prefetch_related('temas')
+    
+    # Paginación (7 tweets por página)
+    paginator = Paginator(tweets, 7)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    # Contexto para el template
+    context = {
         'q': q,
-        'tweets': tweets,
-        'users': User.objects.none(),  # No mostrar usuarios en búsqueda avanzada
-        'temas': Tema.objects.all(),
-        'tema_seleccionado': tema_id
-    })
+        'tweets': page_obj,  # Para el bucle en el template
+        'page_obj': page_obj,  # Para la paginación en base.html
+        'users': User.objects.none(),  # Mantener compatibilidad
+        'temas': Tema.objects.all().order_by('nombre'),
+        'tema_seleccionado': int(tema_id) if tema_id else None,
+        'fecha_desde': fecha_desde,
+        'fecha_hasta': fecha_hasta,
+        'orden': orden,
+    }
+    
+    return render(request, 'core/busqueda_avanzada.html', context)
 
 @require_GET
 @login_required
@@ -388,20 +553,32 @@ def unfollow_user(request, user_id):
     
     return redirect('timeline')
 
+from django.core.paginator import Paginator
+from django.contrib.auth import get_user_model
+from django.db.models import Count
+from django.shortcuts import render, get_object_or_404
+from django.contrib.auth.decorators import login_required
+
 @login_required
 def explore_users(request):
-    """Página para descubrir más usuarios"""
-    # Excluir al usuario actual y usuarios que ya sigue
     following_ids = list(Follow.objects.filter(follower=request.user).values_list('following_id', flat=True))
     excluded_ids = [request.user.id] + following_ids
-    
-    users = User.objects.exclude(
+
+    users_queryset = User.objects.exclude(
         id__in=excluded_ids
     ).select_related('userprofile').annotate(
         followers_count=Count('followers')
     ).order_by('-followers_count', '-date_joined')
-    
-    return render(request, 'core/explore_users.html', {'users': users})
+
+    paginator = Paginator(users_queryset, 7)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, 'core/explore_users.html', {
+        'users': page_obj,      # ← para el bucle
+        'page_obj': page_obj    # ← para la paginación
+    })
+
 
 @login_required
 def load_more_suggested_users(request):

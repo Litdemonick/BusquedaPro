@@ -213,6 +213,47 @@
   color: #6b7280;
   font-size: 0.875rem;
 }
+
+/* Estilos para la cuadrícula principal */
+.main-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .main-grid {
+    grid-template-columns: 2fr 1fr;
+    gap: 1.5rem;
+  }
+}
+
+/* Estilos para las tarjetas */
+.card {
+  background-color: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  padding: 1rem;
+}
+
+.dark .card {
+  background-color: #1f2937;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 2px 0 rgba(0, 0, 0, 0.2);
+}
+
+/* Espaciado para la sección principal */
+.timeline-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Ajustes para el sidebar */
+.sidebar-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
 </style>
 {% endblock %}
 
@@ -237,10 +278,10 @@
     </div>
 </div>
 
-<div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-  <section class="md:col-span-2 space-y-4">
-    <!-- Tu contenido del timeline (sin cambios) -->
-    <div class="card p-4">
+<div class="main-grid">
+  <section class="timeline-section">
+    <!-- Tu contenido del timeline -->
+    <div class="card">
       <form action="{% url 'timeline' %}" method="post" enctype="multipart/form-data" class="space-y-3">
         {% csrf_token %}
         {{ form.non_field_errors }}
@@ -254,34 +295,45 @@
     </div>
 
     {% for t in tweets %}
-    <article class="card p-4">
+    <article class="card">
       <div class="flex gap-3">
         <a href="{% url 'profile' t.user.username %}">
-  {% if t.user.userprofile.avatar %}
-    <img src="{{ t.user.userprofile.avatar.url }}" class="w-10 h-10 rounded-full object-cover" alt="@{{ t.user.username }}">
-  {% else %} 
-    <div class="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-800 flex items-center justify-center font-semibold">
-      {{ t.user.username|first|upper }}
-    </div>
-  {% endif %}
-</a>
+          {% if t.user.userprofile.avatar %}
+            <img src="{{ t.user.userprofile.avatar.url }}" class="w-10 h-10 rounded-full object-cover" alt="@{{ t.user.username }}">
+          {% else %} 
+            <div class="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-800 flex items-center justify-center font-semibold">
+              {{ t.user.username|first|upper }}
+            </div>
+          {% endif %}
+        </a>
         <div class="flex-1">
           <div class="flex items-center gap-2">
             <a href="{% url 'profile' t.user.username %}" class="font-semibold hover:underline">@{{ t.user.username }}</a>
             <span class="text-xs text-gray-500 dark:text-gray-400">{{ t.created_at|date:"d/m/Y H:i" }}</span>
           </div>
-          <a href="{{ t.get_absolute_url }}">
-            <p class="mt-1 whitespace-pre-wrap">{{ t.content|linkify|safe }}</p>
-          {% if t.parent %}
+
+          {% if t.is_retweet and t.parent %}
+            <div class="text-sm text-gray-500 mb-1">Retweet de @{{ t.parent.user.username }}</div>
+            <a href="{{ t.parent.get_absolute_url }}">
+              <p class="mt-1 whitespace-pre-wrap">{{ t.parent.content|linkify|safe }}</p>
+            </a>
+          {% else %}
+            <a href="{{ t.get_absolute_url }}">
+              <p class="mt-1 whitespace-pre-wrap">{{ t.content|linkify|safe }}</p>
+            </a>
+          {% endif %}
+
+          {% if t.parent and not t.is_retweet %}
             <a href="{{ t.parent.get_absolute_url }}" class="block border rounded-xl p-3 mt-2 text-sm bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100">
               <span class="text-gray-500">Publicación original de @{{ t.parent.user.username }}:</span>
               <div class="whitespace-pre-wrap">{{ t.parent.content|linkify|safe }}</div>
             </a>
           {% endif %}
-          </a>
+
           {% if t.image %}
             <img src="{{ t.image.url }}" class="mt-2 rounded-xl border dark:border-gray-700 w-full h-auto max-h-[70vh] object-cover" alt="imagen">
           {% endif %}
+
           <div class="mt-3 flex items-center gap-4">
             {% include "components/like_button.html" with t=t %}
             <a href="{{ t.get_absolute_url }}" class="text-sm px-3 py-1 rounded-xl border hover:bg-gray-50 dark:hover:bg-gray-800 transition">Responder</a>
@@ -292,83 +344,84 @@
       </div>
     </article>
     {% empty %}
-      <p class="text-gray-500">No hay publicaciones aún. ¡Sé el primero!</p>
+      <p class="text-gray-500 text-center py-6">No hay publicaciones aún. ¡Sé el primero!</p>
     {% endfor %}
   </section>
 
-  <aside class="space-y-4">
-  <!-- Bloque de Perfiles Relacionados -->
-  {% if suggested_users %}
-  <div class="card p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
-    <div class="suggested-header border-b border-gray-200 dark:border-gray-700 pb-3 mb-3">
-      <h2 class="font-bold text-lg text-gray-900 dark:text-white">Perfiles relacionados</h2>
-    </div>
-    
-    <div id="suggested-users-container" class="suggested-users-list space-y-4 max-h-96 overflow-y-auto" 
-         data-next-page="2" data-has-more="true">
-      <!-- Los usuarios iniciales se cargan aquí -->
-      {% for user in suggested_users %}
-      <div class="suggested-user-item flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700 p-2 rounded-lg transition-colors" 
-           data-user-id="{{ user.id }}">
-        <div class="flex items-center space-x-3 flex-1 min-w-0">
-          <a href="{% url 'profile' user.username %}" class="flex-shrink-0">
-            {% if user.userprofile.avatar %}
-              <img src="{{ user.userprofile.avatar.url }}" class="w-10 h-10 rounded-full object-cover" alt="@{{ user.username }}">
-            {% else %}
-              <div class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center font-semibold text-white">
-                {{ user.username|first|upper }}
-              </div>
-            {% endif %}
-          </a>
-          
-          <div class="user-info flex-1 min-w-0">
-            <a href="{% url 'profile' user.username %}" class="block">
-              <h4 class="font-semibold text-sm text-gray-900 dark:text-white truncate hover:underline">
-                @{{ user.username }}
-              </h4>
+  <aside class="sidebar-section">
+    <!-- Bloque de Perfiles Relacionados -->
+    {% if suggested_users %}
+    <div class="card">
+      <div class="suggested-header border-b border-gray-200 dark:border-gray-700 pb-3 mb-3">
+        <h2 class="font-bold text-lg text-gray-900 dark:text-white">Perfiles relacionados</h2>
+      </div>
+      
+      <div id="suggested-users-container" class="suggested-users-list space-y-4 max-h-96 overflow-y-auto" 
+           data-next-page="2" data-has-more="true">
+        <!-- Los usuarios iniciales se cargan aquí -->
+        {% for user in suggested_users %}
+        <div class="suggested-user-item flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700 p-2 rounded-lg transition-colors" 
+             data-user-id="{{ user.id }}">
+          <div class="flex items-center space-x-3 flex-1 min-w-0">
+            <a href="{% url 'profile' user.username %}" class="flex-shrink-0">
+              {% if user.userprofile.avatar %}
+                <img src="{{ user.userprofile.avatar.url }}" class="w-10 h-10 rounded-full object-cover" alt="@{{ user.username }}">
+              {% else %}
+                <div class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center font-semibold text-white">
+                  {{ user.username|first|upper }}
+                </div>
+              {% endif %}
             </a>
-            {% if user.userprofile.bio %}
-              <p class="text-xs text-gray-500 dark:text-gray-400 truncate mt-1">
-                {{ user.userprofile.bio|truncatewords:8 }}
-              </p>
-            {% else %}
-              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                Usuario de Twittor
-              </p>
-            {% endif %}
-            <span class="text-xs text-gray-400 dark:text-gray-500 followers-count" 
-                  data-user-id="{{ user.id }}">
-              {{ user.followers_count }} seguidores
-            </span>
+            
+            <div class="user-info flex-1 min-w-0">
+              <a href="{% url 'profile' user.username %}" class="block">
+                <h4 class="font-semibold text-sm text-gray-900 dark:text-white truncate hover:underline">
+                  @{{ user.username }}
+                </h4>
+              </a>
+              {% if user.userprofile.bio %}
+                <p class="text-xs text-gray-500 dark:text-gray-400 truncate mt-1">
+                  {{ user.userprofile.bio|truncatewords:8 }}
+                </p>
+              {% else %}
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Usuario de Twittor
+                </p>
+              {% endif %}
+              <span class="text-xs text-gray-400 dark:text-gray-500 followers-count" 
+                    data-user-id="{{ user.id }}">
+                {{ user.followers_count }} seguidores
+              </span>
+            </div>
+          </div>
+          
+          <div class="follow-action flex-shrink-0 ml-2">
+            <button type="button" 
+                    class="follow-btn px-3 py-1 text-white text-xs font-semibold rounded-full transition-colors {% if user.id in following_ids %}bg-gray-600 hover:bg-gray-700{% else %}bg-blue-600 hover:bg-blue-700{% endif %}"
+                    data-user-id="{{ user.id }}"
+                    data-following="{% if user.id in following_ids %}true{% else %}false{% endif %}">
+              {% if user.id in following_ids %}Dejar de seguir{% else %}Seguir{% endif %}
+            </button>
           </div>
         </div>
-        
-        <div class="follow-action flex-shrink-0 ml-2">
-          <button type="button" 
-                  class="follow-btn px-3 py-1 text-white text-xs font-semibold rounded-full transition-colors {% if user.id in following_ids %}bg-gray-600 hover:bg-gray-700{% else %}bg-blue-600 hover:bg-blue-700{% endif %}"
-                  data-user-id="{{ user.id }}"
-                  data-following="{% if user.id in following_ids %}true{% else %}false{% endif %}">
-            {% if user.id in following_ids %}Dejar de seguir{% else %}Seguir{% endif %}
-          </button>
+        {% endfor %}
+      </div>
+      
+      <!-- Footer oculto -->
+      <div class="suggested-footer border-t border-gray-200 dark:border-gray-700 pt-3 mt-3 text-center hidden">
+        <div id="loading-indicator" class="py-2">
+          <div class="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
         </div>
       </div>
-      {% endfor %}
     </div>
-    
-    <!-- Footer oculto -->
-    <div class="suggested-footer border-t border-gray-200 dark:border-gray-700 pt-3 mt-3 text-center hidden">
-      <div id="loading-indicator" class="py-2">
-        <div class="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-      </div>
-    </div>
-  </div>
-  {% endif %}
+    {% endif %}
 
-  <div class="card p-4">
-    <h2 class="font-bold mb-2">Consejo</h2>
-    <p class="text-sm text-gray-600">Sigue a personas para ver sus publicaciones en tu inicio.</p>
-  </div>
-</aside>
+    <div class="card">
+      <h2 class="font-bold mb-2">Consejo</h2>
+      <p class="text-sm text-gray-600 dark:text-gray-400">Sigue a personas para ver sus publicaciones en tu inicio.</p>
+    </div>
+  </aside>
+</div>
 
 {% block extra_js %}
 <script>

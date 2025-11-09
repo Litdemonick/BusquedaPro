@@ -27,13 +27,13 @@
     cursor: pointer;
     border-bottom: 1px solid #f0f0f0;
     transition: background-color 0.2s;
-    color: #1f2937; /* Texto gris oscuro para mejor contraste */
+    color: #1f2937;
 }
 
 .autocomplete-result:hover,
 .autocomplete-result.selected {
     background-color: #f8f9fa;
-    color: #111827; /* Texto más oscuro al hacer hover */
+    color: #111827;
 }
 
 .autocomplete-result:last-child {
@@ -53,7 +53,7 @@
     font-size: 16px;
     box-sizing: border-box;
     background-color: white;
-    color: #1f2937; /* Texto oscuro para buen contraste */
+    color: #1f2937;
 }
 
 #search-input:focus {
@@ -63,7 +63,91 @@
 }
 
 #search-input::placeholder {
-    color: #6b7280; /* Placeholder gris medio */
+    color: #6b7280;
+}
+
+.saved-searches {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 20px;
+}
+
+.saved-search-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.saved-search-item:hover {
+    background: #f3f4f6;
+    border-color: #3b82f6;
+}
+
+.saved-search-text {
+    flex: 1;
+    font-size: 14px;
+    color: #374151;
+}
+
+.saved-search-delete {
+    background: #ef4444;
+    color: white;
+    border: none;
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.saved-search-delete:hover {
+    background: #dc2626;
+}
+
+.filter-section {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 20px;
+}
+
+.filter-section h3 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: #1f2937;
+}
+
+.date-inputs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.save-search-btn {
+    background: #10b981;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.2s;
+    margin-left: 8px;
+}
+
+.save-search-btn:hover {
+    background: #059669;
 }
 
 /* Estilos para modo oscuro */
@@ -98,6 +182,34 @@
         border-color: #3b82f6;
         box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
     }
+
+    .saved-searches {
+        background: #1f2937;
+        border-color: #374151;
+    }
+
+    .saved-search-item {
+        background: #374151;
+        border-color: #4b5563;
+    }
+
+    .saved-search-item:hover {
+        background: #4b5563;
+        border-color: #3b82f6;
+    }
+
+    .saved-search-text {
+        color: #e5e7eb;
+    }
+
+    .filter-section {
+        background: #1f2937;
+        border-color: #374151;
+    }
+
+    .filter-section h3 {
+        color: #f9fafb;
+    }
 }
 
 /* Estilos específicos para el tema claro */
@@ -125,6 +237,33 @@
 
 .theme-light #search-input::placeholder {
     color: #6b7280;
+}
+
+.theme-light .saved-searches {
+    background: #f9fafb;
+    border-color: #e5e7eb;
+}
+
+.theme-light .saved-search-item {
+    background: white;
+    border-color: #e5e7eb;
+}
+
+.theme-light .saved-search-item:hover {
+    background: #f3f4f6;
+}
+
+.theme-light .saved-search-text {
+    color: #374151;
+}
+
+.theme-light .filter-section {
+    background: #f9fafb;
+    border-color: #e5e7eb;
+}
+
+.theme-light .filter-section h3 {
+    color: #1f2937;
 }
 
 /* Estilos específicos para el tema oscuro */
@@ -158,14 +297,50 @@
     border-color: #3b82f6;
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
 }
+
+.theme-dark .saved-searches {
+    background: #1f2937;
+    border-color: #374151;
+}
+
+.theme-dark .saved-search-item {
+    background: #374151;
+    border-color: #4b5563;
+}
+
+.theme-dark .saved-search-item:hover {
+    background: #4b5563;
+}
+
+.theme-dark .saved-search-text {
+    color: #e5e7eb;
+}
+
+.theme-dark .filter-section {
+    background: #1f2937;
+    border-color: #374151;
+}
+
+.theme-dark .filter-section h3 {
+    color: #f9fafb;
+}
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto p-4">
-
-    <h1 class="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Búsqueda Avanzada</h1>
+<div class="max-w-7xl mx-auto p-4">
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
     
+    <!-- Contenido principal -->
+    <div class="lg:col-span-2">
+      <h1 class="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Búsqueda Avanzada</h1>
+    
+    <!-- Búsquedas Guardadas -->
+    <div id="saved-searches-container" class="saved-searches" style="display: none;">
+        <h3 class="text-gray-900 dark:text-white font-semibold mb-3">Búsquedas Guardadas</h3>
+        <div id="saved-searches-list"></div>
+    </div>
+
     <form method="get" action="{% url 'busqueda_avanzada' %}" class="mb-8">
         <div class="search-container">
             <input 
@@ -180,30 +355,86 @@
             <div id="autocomplete-results" class="autocomplete-results"></div>
         </div>
 
-        <div class="mb-4">
-            <label for="tema" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Filtrar por tema:</label>
-            <select name="tema" id="tema" class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
-                <option value="">Todos los temas</option>
-                {% for tema in temas %}
-                    <option value="{{ tema.id }}" {% if tema.id == tema_seleccionado %}selected{% endif %}>
-                        {{ tema.nombre }}
-                    </option>
-                {% endfor %}
-            </select>
+        <!-- Filtros Avanzados -->
+        <div class="filter-section">
+            <h3 class="dark:text-white">Filtros Avanzados</h3>
+            
+            <div class="mb-4">
+                <label for="tema" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Filtrar por tema:</label>
+                <select name="tema" id="tema" class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                    <option value="">Todos los temas</option>
+                    {% for tema in temas %}
+                        <option value="{{ tema.id }}" {% if tema.id == tema_seleccionado %}selected{% endif %}>
+                            {{ tema.nombre }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Rango de fechas:</label>
+                <div class="date-inputs">
+                    <div>
+                        <label for="fecha_desde" class="block text-xs text-gray-600 dark:text-gray-400 mb-1">Desde:</label>
+                        <input 
+                            type="date" 
+                            id="fecha_desde" 
+                            name="fecha_desde" 
+                            value="{{ fecha_desde }}"
+                            class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        >
+                    </div>
+                    <div>
+                        <label for="fecha_hasta" class="block text-xs text-gray-600 dark:text-gray-400 mb-1">Hasta:</label>
+                        <input 
+                            type="date" 
+                            id="fecha_hasta" 
+                            name="fecha_hasta" 
+                            value="{{ fecha_hasta }}"
+                            class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        >
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label for="orden" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Ordenar por:</label>
+                <select name="orden" id="orden" class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                    <option value="relevancia" {% if orden == 'relevancia' %}selected{% endif %}>Relevancia</option>
+                    <option value="reciente" {% if orden == 'reciente' %}selected{% endif %}>Más reciente</option>
+                    <option value="antiguo" {% if orden == 'antiguo' %}selected{% endif %}>Más antiguo</option>
+                </select>
+            </div>
         </div>
 
-        <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-medium transition-colors">
-            Buscar
-        </button>
+        <div class="flex gap-2">
+            <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-medium transition-colors">
+                Buscar
+            </button>
+            <button type="button" id="save-search-btn" class="save-search-btn">
+                💾 Guardar Búsqueda
+            </button>
+        </div>
     </form>
 
-    {% if q or tema_seleccionado %}
     <div class="results">
         <h2 class="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
-            Resultados 
-            {% if q %}para "{{ q }}"{% endif %}
-            {% if tema_seleccionado and q %}y{% endif %}
-            {% if tema_seleccionado %}con tema "{{ temas|get_tema_by_id:tema_seleccionado }}"{% endif %}
+            {% if q or tema_seleccionado or fecha_desde or fecha_hasta %}
+                Resultados 
+                {% if q %}para "{{ q }}"{% endif %}
+                {% if tema_seleccionado and q %} y {% endif %}
+                {% if tema_seleccionado %}con tema "{{ temas|get_tema_by_id:tema_seleccionado }}"{% endif %}
+                {% if fecha_desde %} desde {{ fecha_desde }}{% endif %}
+                {% if fecha_hasta %} hasta {{ fecha_hasta }}{% endif %}
+                <span class="text-sm text-gray-500 dark:text-gray-400">
+                    ({{ page_obj.paginator.count }} resultado{{ page_obj.paginator.count|pluralize }})
+                </span>
+            {% else %}
+                Mostrando todas las publicaciones
+                <span class="text-sm text-gray-500 dark:text-gray-400">
+                    ({{ page_obj.paginator.count }} total)
+                </span>
+            {% endif %}
         </h2>
 
         {% if tweets %}
@@ -239,13 +470,22 @@
                     </div>
                 {% endfor %}
             </div>
+
+
         {% else %}
             <div class="text-center py-8 text-gray-500 dark:text-gray-400">
                 <p>No se encontraron publicaciones con los criterios de búsqueda.</p>
             </div>
         {% endif %}
     </div>
-    {% endif %}
+    </div>
+
+    <!-- Sidebar -->
+    <aside class="lg:col-span-1 space-y-6">
+      {% include "related_profiles.html" %}
+    </aside>
+    
+  </div>
 </div>
 {% endblock %}
 
@@ -383,15 +623,245 @@ class Autocomplete {
         this.input.value = value;
         this.hideResults();
         console.log('🎯 Seleccionado:', value);
+    }
+}
+
+// Clase para manejar búsquedas guardadas
+class SavedSearches {
+    constructor() {
+        this.storageKey = 'twittor_saved_searches';
+        this.container = document.getElementById('saved-searches-container');
+        this.list = document.getElementById('saved-searches-list');
+        this.saveBtn = document.getElementById('save-search-btn');
+        this.maxVisible = 5; // Máximo de búsquedas visibles sin paginación
+        this.currentPage = 1;
+        this.itemsPerPage = 5;
+        this.init();
+    }
+
+    init() {
+        this.loadSavedSearches();
         
-        // Opcional: enviar el formulario automáticamente al seleccionar
-        // this.input.form.submit();
+        this.saveBtn.addEventListener('click', () => {
+            this.saveCurrentSearch();
+        });
+    }
+
+    loadSavedSearches() {
+        const searches = this.getSavedSearches();
+        
+        if (searches.length === 0) {
+            this.container.style.display = 'none';
+            return;
+        }
+
+        this.container.style.display = 'block';
+        this.renderSearches(searches);
+    }
+
+    renderSearches(searches) {
+        this.list.innerHTML = '';
+
+        // Calcular paginación solo si hay más de 5 búsquedas
+        const totalPages = Math.ceil(searches.length / this.itemsPerPage);
+        const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+        const endIndex = startIndex + this.itemsPerPage;
+        const visibleSearches = searches.slice(startIndex, endIndex);
+
+        // Renderizar búsquedas visibles
+        visibleSearches.forEach((search, index) => {
+            const actualIndex = startIndex + index;
+            const item = this.createSearchItem(search, actualIndex);
+            this.list.appendChild(item);
+        });
+
+        // Agregar controles de paginación solo si hay más de 5 búsquedas
+        if (searches.length > this.maxVisible) {
+            this.addPaginationControls(totalPages);
+        }
+    }
+
+    addPaginationControls(totalPages) {
+        const paginationDiv = document.createElement('div');
+        paginationDiv.className = 'flex justify-center items-center gap-2 mt-4 pt-3 border-t border-gray-300 dark:border-gray-600';
+
+        // Botón anterior
+        if (this.currentPage > 1) {
+            const prevBtn = document.createElement('button');
+            prevBtn.textContent = '‹ Anterior';
+            prevBtn.className = 'px-3 py-1 text-sm bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors';
+            prevBtn.onclick = () => {
+                this.currentPage--;
+                this.loadSavedSearches();
+            };
+            paginationDiv.appendChild(prevBtn);
+        }
+
+        // Indicador de página
+        const pageInfo = document.createElement('span');
+        pageInfo.textContent = `${this.currentPage} / ${totalPages}`;
+        pageInfo.className = 'text-sm font-medium text-gray-600 dark:text-gray-400 px-2';
+        paginationDiv.appendChild(pageInfo);
+
+        // Botón siguiente
+        if (this.currentPage < totalPages) {
+            const nextBtn = document.createElement('button');
+            nextBtn.textContent = 'Siguiente ›';
+            nextBtn.className = 'px-3 py-1 text-sm bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors';
+            nextBtn.onclick = () => {
+                this.currentPage++;
+                this.loadSavedSearches();
+            };
+            paginationDiv.appendChild(nextBtn);
+        }
+
+        this.list.appendChild(paginationDiv);
+    }
+
+    getSavedSearches() {
+        try {
+            const searches = localStorage.getItem(this.storageKey);
+            return searches ? JSON.parse(searches) : [];
+        } catch (e) {
+            console.error('Error al cargar búsquedas guardadas:', e);
+            return [];
+        }
+    }
+
+    saveCurrentSearch() {
+        const q = document.getElementById('search-input').value.trim();
+        const tema = document.getElementById('tema').value;
+        const fechaDesde = document.getElementById('fecha_desde').value;
+        const fechaHasta = document.getElementById('fecha_hasta').value;
+        const orden = document.getElementById('orden').value;
+
+        if (!q && !tema && !fechaDesde && !fechaHasta) {
+            alert('Debes agregar al menos un criterio de búsqueda');
+            return;
+        }
+
+        const search = {
+            q: q,
+            tema: tema,
+            fechaDesde: fechaDesde,
+            fechaHasta: fechaHasta,
+            orden: orden,
+            timestamp: new Date().toISOString()
+        };
+
+        const searches = this.getSavedSearches();
+        searches.unshift(search);
+        
+        // Mantener solo las últimas 20 búsquedas
+        if (searches.length > 20) {
+            searches.pop();
+        }
+
+        try {
+            localStorage.setItem(this.storageKey, JSON.stringify(searches));
+            this.currentPage = 1; // Volver a la primera página
+            this.loadSavedSearches();
+            alert('✅ Búsqueda guardada exitosamente');
+        } catch (e) {
+            console.error('Error al guardar búsqueda:', e);
+            alert('❌ Error al guardar la búsqueda');
+        }
+    }
+
+    createSearchItem(search, index) {
+        const item = document.createElement('div');
+        item.className = 'saved-search-item';
+
+        const textParts = [];
+        if (search.q) textParts.push(`"${search.q}"`);
+        if (search.tema) textParts.push(`Tema: ${this.getTemaName(search.tema)}`);
+        if (search.fechaDesde) textParts.push(`Desde: ${search.fechaDesde}`);
+        if (search.fechaHasta) textParts.push(`Hasta: ${search.fechaHasta}`);
+        if (search.orden) textParts.push(`Orden: ${this.getOrdenName(search.orden)}`);
+
+        const text = document.createElement('span');
+        text.className = 'saved-search-text';
+        text.textContent = textParts.join(' | ');
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'saved-search-delete';
+        deleteBtn.textContent = '✕';
+        deleteBtn.onclick = (e) => {
+            e.stopPropagation();
+            this.deleteSearch(index);
+        };
+
+        item.appendChild(text);
+        item.appendChild(deleteBtn);
+
+        item.onclick = () => {
+            this.loadSearch(search);
+        };
+
+        return item;
+    }
+
+    getTemaName(temaId) {
+        const select = document.getElementById('tema');
+        const option = select.querySelector(`option[value="${temaId}"]`);
+        return option ? option.textContent : temaId;
+    }
+
+    getOrdenName(orden) {
+        const nombres = {
+            'relevancia': 'Relevancia',
+            'reciente': 'Más reciente',
+            'antiguo': 'Más antiguo'
+        };
+        return nombres[orden] || orden;
+    }
+
+    loadSearch(search) {
+        document.getElementById('search-input').value = search.q || '';
+        document.getElementById('tema').value = search.tema || '';
+        document.getElementById('fecha_desde').value = search.fechaDesde || '';
+        document.getElementById('fecha_hasta').value = search.fechaHasta || '';
+        document.getElementById('orden').value = search.orden || 'relevancia';
+
+        // Construir URL con parámetros para mantener la paginación
+        const form = document.querySelector('form');
+        const formData = new FormData(form);
+        const params = new URLSearchParams();
+        
+        for (let [key, value] of formData.entries()) {
+            if (value) {
+                params.append(key, value);
+            }
+        }
+        
+        // Redirigir con los parámetros (sin page para comenzar desde la primera página)
+        window.location.href = form.action + '?' + params.toString();
+    }
+
+    deleteSearch(index) {
+        const searches = this.getSavedSearches();
+        searches.splice(index, 1);
+        
+        try {
+            localStorage.setItem(this.storageKey, JSON.stringify(searches));
+            
+            // Ajustar página actual si es necesario
+            const totalPages = Math.ceil(searches.length / this.itemsPerPage);
+            if (this.currentPage > totalPages && totalPages > 0) {
+                this.currentPage = totalPages;
+            }
+            
+            this.loadSavedSearches();
+        } catch (e) {
+            console.error('Error al eliminar búsqueda:', e);
+        }
     }
 }
 
 // Inicializar
 document.addEventListener('DOMContentLoaded', function() {
     new Autocomplete('search-input', 'autocomplete-results');
+    new SavedSearches();
 });
 </script>
 {% endblock %}

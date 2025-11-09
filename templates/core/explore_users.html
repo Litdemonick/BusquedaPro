@@ -1,54 +1,5 @@
 {% extends 'base.html' %}
-{% load static %}
-
 {% block title %}Descubrir Usuarios - Twittor{% endblock %}
-
 {% block content %}
-<div class="max-w-2xl mx-auto">
-  <div class="card p-6">
-    <h1 class="text-2xl font-bold mb-6">Descubrir usuarios</h1>
-    
-    <div class="space-y-4">
-      {% for user in users %}
-      <div class="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-        <div class="flex items-center space-x-4 flex-1">
-          <a href="{% url 'profile' user.username %}">
-            {% if user.userprofile.avatar %}
-              <img src="{{ user.userprofile.avatar.url }}" class="w-12 h-12 rounded-full object-cover" alt="@{{ user.username }}">
-            {% else %}
-              <div class="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center font-semibold text-white">
-                {{ user.username|first|upper }}
-              </div>
-            {% endif %}
-          </a>
-          
-          <div class="flex-1 min-w-0">
-            <a href="{% url 'profile' user.username %}" class="font-semibold hover:underline block">
-              @{{ user.username }}
-            </a>
-            {% if user.userprofile.bio %}
-              <p class="text-sm text-gray-600 dark:text-gray-400 mt-1 truncate">{{ user.userprofile.bio }}</p>
-            {% endif %}
-            <p class="text-xs text-gray-500 mt-1">{{ user.followers_count }} seguidores</p>
-          </div>
-        </div>
-        
-        <div class="flex-shrink-0">
-          <form action="{% url 'follow_user' user.id %}" method="post">
-            {% csrf_token %}
-            <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-full transition-colors">
-              Seguir
-            </button>
-          </form>
-        </div>
-      </div>
-      {% empty %}
-      <div class="text-center py-8">
-        <p class="text-gray-500">No hay más usuarios para descubrir</p>
-        <p class="text-sm text-gray-400 mt-2">¡Sigue a más personas para ver más sugerencias!</p>
-      </div>
-      {% endfor %}
-    </div>
-  </div>
-</div>
+<!-- tu contenido aquí -->
 {% endblock %}

@@ -1,20 +1,138 @@
-
 {% extends 'base.html' %}
 {% block title %}Notificaciones{% endblock %}
 {% block content %}
-<div class="max-w-2xl mx-auto space-y-3">
-  {% for n in notifs %}
-    <div class="card p-3">
-      {% if n.actor.userprofile.avatar %}<img src="{{ n.actor.userprofile.avatar.url }}" class="w-8 h-8 rounded-full object-cover">{% else %}<div class="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-800 flex items-center justify-center text-sm font-semibold">{{ n.actor.username|first|upper }}</div>{% endif %}
-<a href="{% url 'profile' n.actor.username %}" class="font-semibold hover:underline">@{{ n.actor.username }}</a>
-      <span class="text-gray-700">{{ n.verb }}</span>
-      {% if n.tweet %}
-        <a class="text-blue-600 hover:underline" href="{% url 'tweet_detail' n.tweet.pk %}">Ver</a>
-      {% endif %}
-      <div class="text-xs text-gray-500 dark:text-gray-400">{{ n.created_at|date:"d/m/Y H:i" }}</div>
+<div class="max-w-4xl mx-auto bg-white dark:bg-gray-900 p-6 rounded-xl min-h-[90vh]">
+
+  <div class="mb-8">
+    <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Notificaciones</h1>
+    <p class="text-gray-600 dark:text-gray-400 mt-2">Tus últimas actividades y menciones</p>
+  </div>
+
+  {% if notifs %}
+    <div class="space-y-4">
+      {% for n in notifs %}
+        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm dark:shadow-md hover:shadow-md dark:hover:shadow-lg transition-all duration-200">
+          <div class="flex items-start gap-4">
+            {% if n.actor.userprofile.avatar %}
+              <img src="{{ n.actor.userprofile.avatar.url }}" class="w-12 h-12 rounded-full object-cover flex-shrink-0" alt="@{{ n.actor.username }}">
+            {% else %}
+              <div class="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-lg font-semibold text-blue-600 dark:text-blue-300 flex-shrink-0">
+                {{ n.actor.username|first|upper }}
+              </div>
+            {% endif %}
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 flex-wrap">
+                <a href="{% url 'profile' n.actor.username %}" class="font-semibold hover:underline text-gray-900 dark:text-white text-base">@{{ n.actor.username }}</a>
+                <span class="text-gray-700 dark:text-gray-300 text-sm">{{ n.verb }}</span>
+              </div>
+              
+              {% if n.tweet %}
+                <div class="mt-2 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-100 dark:border-gray-600">
+                  <p class="text-gray-700 dark:text-gray-300 text-sm line-clamp-3">
+                    {{ n.tweet.content|truncatewords:20 }}
+                  </p>
+                  <a class="inline-block mt-2 text-blue-600 dark:text-blue-400 hover:underline text-sm font-medium" href="{% url 'tweet_detail' n.tweet.pk %}">
+                    Ver publicación completa →
+                  </a>
+                </div>
+              {% endif %}
+              
+              <div class="flex items-center justify-between mt-3">
+                <span class="text-xs text-gray-500 dark:text-gray-400">{{ n.created_at|timesince }} ago</span>
+                <span class="text-xs text-gray-400 dark:text-gray-500">{{ n.created_at|date:"d/m/Y H:i" }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
     </div>
-  {% empty %}
-    <p class="text-gray-500">Sin notificaciones.</p>
-  {% endfor %}
+
+    {% if page_obj.has_other_pages %}
+      <div class="flex justify-center items-center mt-12 mb-8 space-x-3">
+        {% if page_obj.has_previous %}
+          <a href="?page={{ page_obj.previous_page_number }}" class="px-5 py-2.5 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg text-sm font-medium transition-colors duration-200">
+            ← Anterior
+          </a>
+        {% endif %}
+        
+        <div class="flex items-center space-x-2">
+          {% for num in page_obj.paginator.page_range %}
+            {% if page_obj.number == num %}
+              <span class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium">
+                {{ num }}
+              </span>
+            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+              <a href="?page={{ num }}" class="px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg text-sm font-medium transition-colors duration-200">
+                {{ num }}
+              </a>
+            {% endif %}
+          {% endfor %}
+        </div>
+        
+        {% if page_obj.has_next %}
+          <a href="?page={{ page_obj.next_page_number }}" class="px-5 py-2.5 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg text-sm font-medium transition-colors duration-200">
+            Siguiente →
+          </a>
+        {% endif %}
+      </div>
+      
+      <div class="text-center text-sm text-gray-500 dark:text-gray-400 mb-4">
+        Mostrando página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }} - {{ page_obj.paginator.count }} notificaciones en total
+      </div>
+    {% endif %}
+
+  {% else %}
+    <div class="text-center py-20">
+      <div class="max-w-md mx-auto">
+        <div class="w-24 h-24 mx-auto mb-6 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
+          <svg class="w-12 h-12 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+          </svg>
+        </div>
+        <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">Sin notificaciones</h3>
+        <p class="text-gray-600 dark:text-gray-400 mb-6">No tienes notificaciones en este momento. Cuando recibas menciones, likes o nuevos seguidores, aparecerán aquí.</p>
+        <a href="{% url 'timeline' %}" class="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200">
+          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+          </svg>
+          Volver al inicio
+        </a>
+      </div>
+    </div>
+  {% endif %}
+
 </div>
+
+<style>
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.shadow-sm {
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.shadow-md {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.shadow-lg {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.dark .shadow-sm {
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.2);
+}
+
+.dark .shadow-md {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+}
+
+.dark .shadow-lg {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+}
+</style>
 {% endblock %}

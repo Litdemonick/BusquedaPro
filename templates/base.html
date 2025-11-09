@@ -61,9 +61,20 @@
 
     .search-container { @apply relative; }
   }
+html {
+  min-height: 100%;
+  background: linear-gradient(to bottom right, #f8fafc, #ffffff, #e0e7ff);
+}
 
-  html, body { height: 100%; }
+body {
+  min-height: 100%;
+  background: transparent;
+}
+
   </style>
+
+
+
 
   <!-- Bloques extra -->
   {% block head %}{% endblock %}
@@ -120,7 +131,8 @@
   </nav>
 
   <!-- Contenido -->
-  <main class="max-w-6xl mx-auto p-4">
+  <main class="max-w-6xl mx-auto p-4 min-h-[90vh] flex flex-col">
+
     {% if messages %}
       <div class="space-y-2 mb-4">
         {% for m in messages %}
@@ -129,6 +141,20 @@
       </div>
     {% endif %}
     {% block content %}{% endblock %}
+        <!-- Paginación global -->
+{% if page_obj.has_other_pages %}
+  <div class="flex justify-center mt-6 space-x-2">
+    {% if page_obj.has_previous %}
+      <a href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}page={{ page_obj.previous_page_number }}" class="px-3 py-1 bg-gray-200 dark:bg-gray-700 rounded">Anterior</a>
+    {% endif %}
+    <span class="px-3 py-1 bg-blue-600 text-white rounded">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+      <a href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}page={{ page_obj.next_page_number }}" class="px-3 py-1 bg-gray-200 dark:bg-gray-700 rounded">Siguiente</a>
+    {% endif %}
+  </div>
+{% endif %}
+
+    
   </main>
 
   <footer class="text-center text-xs text-gray-500 py-8">
